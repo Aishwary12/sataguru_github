@@ -1,0 +1,55 @@
+{% extends 'branch_manager/dashboard-base.html' %}
+{% load static %}
+
+{% block contain %}
+<div class="container-fluid">
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Customer Details</h6>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'add_credit' customer.id %}">
+        {% csrf_token %}
+        <div class="form-group row">
+          <div class="col-sm-6">
+            <label>Customer Name</label>
+            <input type="text" class="form-control" value="{{ customer.name }}" readonly>
+          </div>
+        </div>
+        
+        <div class="form-group row">
+          <div class="col-sm-6">
+            <label>Email</label>
+            <input type="text" class="form-control" value="{{ customer.email }}" readonly>
+          </div>
+        </div>
+
+        <div class="form-group row">
+          <div class="col-sm-6">
+            <label>Account Number</label>
+            <input type="text" class="form-control" value="{{ customer.account_number }}" readonly>
+          </div>
+        </div>
+
+        <div class="form-group row">
+            <div class="col-sm-6">
+            <label>Scheme</label>
+              <input type="text" class="form-control" value="{{ customer.scheme }}" readonly>
+            </div>
+          </div>
+
+        <div class="form-group row">
+          <div class="col-sm-6">
+            <label>Credit Premium</label>
+            <input type="number" name="credit_amount" class="form-control" value="{{ customer.premium }}">
+          </div>
+        </div>
+
+        <div><br>
+          <button type="submit" class="btn btn-primary">Update Credit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'branch_manager/dashboard-base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Customer Transactions</title>
+{% endblock %}
+
+{% block contain %}
+
+<body class="bg-gradient-primary">
+    <div class="container cus-height">
+      <div class="card o-hidden border-0 shadow-lg">
+        <div class="card-body p-0">
+          <!-- Nested Row within Card Body -->
+          <div class="row">
+            <div class="col-lg-12">
+              <div class="p-5">
+                &nbsp; <a href="{% url 'dashboard' %}"><button class="btn btn-secondary stock_class" style="margin-right: auto;" type="button" data-dismiss="modal">Back</button></a>
+                <br/>
+                <div class="card shadow">
+                  <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ customer.name }} Transactions</h6>
+                    <div>
+                      {% comment %}
+                      <a href="#" class="btn btn-sm btn-primary shadow-sm" type="button" data-toggle="modal"
+                        data-target="#add_user" ><i class="fa fa-user fa-sm text-white-50"></i> Add Agent</a>
+                        
+                        <button data-toggle="modal" data-target="#exampleModal1-{{order_details.id}}" value="{{order_details.id}}"
+                        class="btn btn-sm btn-primary shadow-sm invisible-div"><i class="fas fa-filter fa-sm text-white-50"></i> Date Filter</button>
+                        {% endcomment %}
+                        <a href="{% url 'export_transactions_pdf' %}" class="btn btn-sm btn-primary shadow-sm"><i
+                          class="fas fa-download fa-sm text-white-50 "></i> Generate PDF</a>&nbsp;
+                        <a href="{% url 'export_transactions_excel' %}" class="btn btn-sm btn-primary shadow-sm"><i
+                          class="fas fa-download fa-sm text-white-50 "></i> Generate Excel</a>
+                    </div>
+                  </div>
+  
+                <div class="container-fluid">
+      <!-- Transactions Section -->
+      <div class="card shadow">  
+          <div class="card-body">
+              <div class="table-responsive all_customer">
+                  <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                      <thead>
+                          <tr>
+                              <th>Sr. No</th>
+                              <th>Customer Name</th>
+                              <th>Amount</th>
+                              <th>Type</th>
+                              <th>Status</th>
+                              <th>Processed By</th>
+                              <th>User</th>
+                              <th>Date - Time</th>
+                              {% if user.is_authenticated and user.user == 'MID' %}
+                              <th>Approve</th>
+                              <th>Reject</th>
+                              {% endif %}
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {% for request in transactions %}
+                          <tr>
+                              <td>{{ forloop.counter }}</td>
+                              <td>{{ request.customer.name }}</td>
+                              <td>{{ request.amount }}</td>
+                              <td>
+                                  <span class="{% if request.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
+                                      {{ request.transaction_type }}
+                                  </span>
+                              </td>
+                              <td>
+                                  <span class="{% if request.status == 'PENDING' %}text-warning{% elif request.status == 'APPROVED' %}text-success{% else %}text-danger{% endif %}">
+                                      {{ request.status }}
+                                  </span>
+                              </td>
+                              <td>
+                                  {% if request.transaction_type == 'CREDIT' %}
+                                    {% if request.agent.email == none %}
+                                      {{ request.branch_head.email }}
+                                    {% else %}
+                                      {{ request.agent.email }}
+                                    {% endif %}
+                                  {% else %}
+                                      {{ request.branch_head.email }}
+                                  {% endif %}
+                              </td>
+                              <td>
+                                {% if request.transaction_type == 'CREDIT' %}
+                                  {% if request.agent.name == none %}
+                                    {{ 'Branch Head' }}
+                                  {% else %}
+                                    {{ 'Agent' }}
+                                  {% endif %}
+                                {% else %}
+                                    {{ 'Branch Head' }}
+                                {% endif %}
+                            </td>
+                            <td>
+                              {{ request.created_at }}
+                            </td>
+                              {% if user.is_authenticated and user.user == 'MID' and request.status == 'PENDING' %}
+                              <td>
+                                  <form method="post" action="{% url 'approve_credit_request' request.id %}">
+                                      {% csrf_token %}
+                                      <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                  </form>
+                              </td>
+                              <td>
+                                  <form method="post" action="{% url 'reject_credit_request' request.id %}">
+                                      {% csrf_token %}
+                                      <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                  </form>
+                              </td>
+                              {% else %}6
+                              <td>{{ 'Transaction Done' }}</td>
+                              <td>{{ '       ' }}</td>
+                              {% endif %}
+                          </tr>
+                          {% empty %}
+                          
+                      
+                          {% endfor %}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+  </div>
+                  
+              
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  
+  
+  <script>
+    $("#id_email").keyup(function () {
+      var email = $("#id_email").val();
+      var filter =
+        /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+
+      if (!filter.test(email)) {
+        //alert('Please provide a valid email address');
+        $("#error_email").text(email + " is not a valid email");
+        email.focus;
+        //return false;
+      } else {
+        $("#error_email").text("");
+      }
+    });
+
+    $("#id_password").keyup(function () {
+      var password = $("#id_password").val();
+      var filter = /^[a-zA-Z0-9.,/ $@()]+$/;
+
+      if (password.length < 8) {
+        //alert('Please provid a valid email address');
+
+        $("#error_password").text("Password length should be greater than 8");
+        password.focus;
+        //return false;
+      } else {
+        $("#error_password").text("");
+      }
+    });
+
+    $("#id_phone").keyup(function () {
+      var password = $("#id_phone").val();
+      var filter = /^[a-zA-Z0-9.,/ $@()]+$/;
+
+      if (password.length < 10 || password.length > 10) {
+        //alert('Please provid a valid email address');
+
+        $("#error_phone").text("Phone number should be in 10 digits");
+        password.focus;
+        //return false;
+      } else {
+        $("#error_phone").text("");
+      }
+    });
+  </script>
+  <style>
+    .select_form select {
+      padding: 0 !important;
+      padding-left: 16px !important;
+    }
+  </style>
+</body>
+{% endblock %}

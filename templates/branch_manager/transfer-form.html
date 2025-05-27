@@ -1,0 +1,103 @@
+{% extends 'branch_manager/dashboard-base.html' %}
+{% load static %}
+
+{% block contain %}
+<div class="container-fluid">
+  {% if msg %}
+    <div class="alert alert-danger">{{ msg }}</div>
+  {% endif %}
+  {% if msg1 %}
+    <div class="alert alert-success">{{ msg1 }}</div>
+  {% endif %}
+
+  <div class="row">
+    <!-- Sender (Main) Customer Card -->
+    <div class="col-md-6">
+      <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+          <h6 class="m-0 font-weight-bold">Sender - Main Customer</h6>
+        </div>
+        <div class="card-body">
+          <p><strong>Name:</strong> {{ customer.name }}</p>
+          <p><strong>Email:</strong> {{ customer.email }}</p>
+          <p><strong>Account Number:</strong> {{ customer.account_number }}</p>
+          <p><strong>Scheme:</strong> {{ customer.scheme }}</p>
+          <p><strong>Premium:</strong> {{ customer.premium }}</p>
+          <p><strong>Main Balance:</strong> ₹{{ customer.credit_amount }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Receiver Customer Card -->
+    <div class="col-md-6">
+      <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+          <h6 class="m-0 font-weight-bold">Receiver Customer</h6>
+        </div>
+        <div class="card-body">
+          <p><strong>Name:</strong> {{ reciver.name }}</p>
+          <p><strong>Email:</strong> {{ reciver.email }}</p>
+          <p><strong>Account Number:</strong> {{ reciver.account_number }}</p>
+          <p><strong>Scheme:</strong> {{ reciver.scheme }}</p>
+          <p><strong>Premium:</strong> {{ reciver.premium }}</p>
+          <p><strong>Main Balance:</strong> ₹{{ reciver.credit_amount }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transfer Form -->
+  <form method="post" id="transferForm" action="{% url 'transfer_amount' customer.id reciver.id %}">
+    {% csrf_token %}
+    <div class="form-group row">
+      <div class="col-md-6">
+        <label for="amount">Amount to Transfer</label>
+        <input type="number" name="amount" id="amount" class="form-control" required min="1">
+      </div>
+      <div class="col-md-6">
+        <label for="remarks">Remarks</label>
+        <input type="text" name="remarks" id="remarks" class="form-control" required min="1">
+      </div>
+    </div>
+    <br>
+    <!-- Trigger Modal Button -->
+    <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#confirmTransferModal">
+      Transfer Amount
+    </button>
+  </form>
+
+  <!-- Modal -->
+  <div class="modal fade" id="confirmTransferModal" tabindex="-1" role="dialog" aria-labelledby="confirmTransferLabel" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmTransferLabel">Confirm Transfer</h5>
+          <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to transfer <strong>₹<span id="confirmAmount">0</span></strong>
+          from <strong>{{ customer.name }}</strong> to <strong>{{ reciver.name }}</strong>?
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" onclick="submitTransferForm()">Yes, Transfer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Update modal amount preview
+    document.getElementById('amount').addEventListener('input', function () {
+      document.getElementById('confirmAmount').textContent = this.value || 0;
+    });
+
+    // Submit form on modal confirmation
+    function submitTransferForm() {
+      document.getElementById('transferForm').submit();
+    }
+  </script>
+</div>
+{% endblock %}

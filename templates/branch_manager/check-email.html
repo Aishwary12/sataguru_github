@@ -1,0 +1,19 @@
+{% extends 'branch_manager/dashboard-base.html' %}
+{% block title %}<title>Check Your Email</title>{% endblock %}
+
+{% block contain %}
+<div class="container cus-height">
+    <div class="card o-hidden border-0 shadow-lg my-5">
+        <div class="card-body p-5 text-center">
+            <h1 class="h4 text-gray-900 mb-4">Check Your Email</h1>
+            <p>We have sent a password reset link to your email. Please check your inbox and follow the instructions.</p>
+            
+            <img src="https://cdn-icons-png.flaticon.com/512/2983/2983061.png" alt="Email Sent" width="120">
+
+            <p class="mt-3">If you don’t receive an email in a few minutes, check your spam folder or <a href="{% url 'forgot_password' %}" class="text-primary">try again</a>.</p>
+
+            <a href="{% url 'login' %}" class="btn btn-primary mt-3">Back to Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

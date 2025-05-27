@@ -1,0 +1,77 @@
+{% extends 'branch_manager/dashboard-base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Transfer History</title>
+{% endblock %}
+
+{% block contain %}
+<style>
+    .invisible-div {
+    display: none; /* This will completely hide the div and its contents */
+}
+</style>
+<body class="bg-gradient-primary">
+  <div class="container cus-height">
+    <div class="card o-hidden border-0 shadow-lg">
+      <div class="card-body p-0">
+        <div class="row">
+          <div class="col-lg-12">
+            <div class="p-5">
+              &nbsp;
+              <a href="{% url 'dashboard' %}">
+                <button class="btn btn-secondary stock_class" type="button">Back</button>
+              </a>
+              <br/>
+              <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                  <h6 class="m-0 font-weight-bold text-primary">Transfer History</h6>
+                  <div>
+                    <a href="{% url 'export_transactions_pdf' %}" class="btn btn-sm btn-primary shadow-sm invisible-div">
+                      <i class="fas fa-download fa-sm text-white-50"></i> Generate PDF
+                    </a>&nbsp;
+                    <a href="{% url 'export_transactions_excel' %}" class="btn btn-sm btn-primary shadow-sm invisible-div">
+                      <i class="fas fa-download fa-sm text-white-50"></i> Generate Excel
+                    </a>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="table-responsive all_customer">
+                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                      <thead>
+                        <tr>
+                          <th>Sr. No</th>
+                          <th>Sender</th>
+                          <th>Receiver</th>
+                          <th>Amount</th>
+                          <th>Remarks</th>
+                          <th>Transfer Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for transfer in transfers %}
+                          <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ transfer.sender.account_number }}</td>
+                            <td>{{ transfer.receiver.account_number }}</td>
+                            <td>₹{{ transfer.amount }}</td>
+                            <td>{{ transfer.remarks }}</td>
+                            <td>{{ transfer.transfer_date|date:"Y-m-d" }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div> <!-- end card -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+{% endblock %}
