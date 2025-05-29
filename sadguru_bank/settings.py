@@ -26,8 +26,11 @@ SECRET_KEY = 'django-insecure-e$$!40gi)xwch34(ts-0-4#mf30n8ejon+mg+852yji(d+asox
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*", "https://d9fa-60-254-0-43.ngrok-free.app"]
-CSRF_TRUSTED_ORIGINS = ["https://*.ngrok.io", "https://50e8-60-254-0-43.ngrok-free.app"]
+ALLOWED_HOSTS = ["*", ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://sataguru-bank.onrender.com",
+]
 
 
 # Application definition
