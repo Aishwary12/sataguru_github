@@ -26,7 +26,6 @@ import zipfile
 import dateutil.relativedelta
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password  # For hashing the password
-from django.core.mail import send_mail
 # from sendgrid import SendGridAPIClient
 # from sendgrid.helpers.mail import Mail
 import random
@@ -187,51 +186,6 @@ def branch_manager(request):
             random_password = "Pass@1234"
             user.set_password(random_password)  # Hash the password
             user.save()
-
-            # Send Email
-            email_subject = "Your Branch Manager Account Details"
-            email_body = f"""
-            <html>
-                <body>
-                    <p>Hello {user.name},</p>
-                    <p>Your Branch Head account has been created successfully.</p>
-
-                    <p><strong>🔹 Login Details:</strong></p>
-                    <ul>
-                        <li><strong>Email:</strong> {user.email}</li>
-                        <li><strong>Password:</strong> {random_password}</li>
-                    </ul>
-
-                    <p>
-                        <a href="http://127.0.0.1:8000/" style="
-                            display: inline-block;
-                            padding: 12px 24px;
-                            font-size: 18px;
-                            color: white;
-                            background-color: #007BFF;
-                            text-decoration: none;
-                            border-radius: 5px;
-                            text-align: center;
-                            font-weight: bold;
-                        ">
-                            LOGIN
-                        </a>
-                    </p>
-
-                    <p>Regards,<br>Satguru Bank</p>
-                </body>
-            </html>
-            """
-            newemail = "shreyashstake1@gmail.com"
-            send_mail(
-                email_subject,
-                "",  # Plain text version (optional)
-                "xyz",  # Sender email
-                [user.email],  # Recipient
-                fail_silently=False,
-                html_message=email_body,  # HTML content
-            )
-            print('Send mail', 'Successfully')
             request.session["massage"] = "User Added Successfully! Email Sent."
             return redirect("branch_manager")
         else:
@@ -301,51 +255,6 @@ def agent(request):
             area=agent_area,
         )
         agent_registration.save()
-
-        # Send Email
-        email_subject = "Your Branch Manager Account Details"
-        email_body = f"""
-        <html>
-            <body>
-                <p>Hello {agent_user.name},</p>
-                <p>Your Agent account has been created successfully.</p>
-
-                <p><strong>🔹 Login Details:</strong></p>
-                <ul>
-                    <li><strong>Email:</strong> {agent_user.email}</li>
-                    <li><strong>Password:</strong> {random_password}</li>
-                </ul>
-
-                <p>
-                    <a href="http://127.0.0.1:8000/" style="
-                        display: inline-block;
-                        padding: 12px 24px;
-                        font-size: 18px;
-                        color: white;
-                        background-color: #007BFF;
-                        text-decoration: none;
-                        border-radius: 5px;
-                        text-align: center;
-                        font-weight: bold;
-                    ">
-                        LOGIN
-                    </a>
-                </p>
-
-                <p>Regards,<br>Satguru Bank</p>
-            </body>
-        </html>
-        """
-        newemail = "testerexist@yopmail.com"
-        # send_mail(
-        #     email_subject,
-        #     "",  # Plain text version (optional)
-        #     "postmaster@sandbox5da9e40c8d464ac89e3a329c8c34dcd3.mailgun.org",  # Sender email
-        #     [newemail],  # Recipient
-        #     fail_silently=False,
-        #     html_message=email_body,  # HTML content
-        # )
-
         request.session["massage"] = "User Added Successfully! Email Sent."
         return redirect("agent")
 
@@ -668,43 +577,6 @@ def forgot_password(request):
     if request.method == 'POST':
         email = request.POST.get("email")
         user = CustomUser.objects.get(email=email)
-        # Send Email
-        email_subject = "Reset Your Password"
-        email_body = f"""
-        <html>
-            <body>
-                <p>Hello {user.name},</p>
-                <p>You requested a password reset. Click the link below to reset your password:</p>
-
-                <p>
-                    <a href="http://127.0.0.1:8000/reset_password/" style="
-                        display: inline-block;
-                        padding: 12px 24px;
-                        font-size: 18px;
-                        color: white;
-                        background-color: #007BFF;
-                        text-decoration: none;
-                        border-radius: 5px;
-                        text-align: center;
-                        font-weight: bold;
-                    ">
-                        RESET PASSWORD
-                    </a>
-                </p>
-
-                <p>Regards,<br>Satguru Bank</p>
-            </body>
-        </html>
-        """
-        newemail = "testerexist@yopmail.com"
-        # send_mail(
-        #     email_subject,
-        #     "",  # Plain text version (optional)
-        #     "postmaster@sandbox5da9e40c8d464ac89e3a329c8c34dcd3.mailgun.org",  # Sender email
-        #     [newemail],  # Recipient
-        #     fail_silently=False,
-        #     html_message=email_body,  # HTML content
-        # )
         return redirect('search')
     
     return render(request, 'branch_manager/forgot-password.html', {
@@ -1155,7 +1027,7 @@ def customer_debit_request(request, customer_id):
         return redirect('debit_search_customer') 
 
 def update_branch_manager(request, user_id):
-    user = get_object_or_404(CustomUser, id=user_id)
+    branch_user = get_object_or_404(CustomUser, id=user_id)
     msg = ""
     msg1 = ''
     if "massage1" in request.session:
@@ -1167,22 +1039,20 @@ def update_branch_manager(request, user_id):
     else:
         msg1 = ''
         msg = ""
-
-
     if request.method == "POST":
-        form = UserRegistrationForm(request.POST, instance=user)  # Pass request.user
+        form = UserRegistrationForm(request.POST, instance=branch_user)  # Pass request.user
         if form.is_valid():
             form.save()
             request.session["massage"] = 'User Updated Successfully !!'
             return redirect("branch_manager")
         else:
             request.session["massage1"] = 'Please Enter Valid Information !!'
-            return redirect('update_branch_manager', user_id=user.id)
+            return redirect('update_branch_manager', user_id=branch_user.id)
     else:
-        form = UserRegistrationForm(instance=user)  # Pass request.user
+        form = UserRegistrationForm(instance=branch_user)  # Pass request.user
         branch_heads = CustomUser.objects.filter(user='MID')
 
-    return render(request, "branch_manager/update_manager.html", {"form": form, "msg":msg , "msg1": msg1, "branch_heads": branch_heads})
+    return render(request, "branch_manager/update_manager.html", {"form": form, "msg":msg , "msg1": msg1, "branch_heads": branch_heads, "branch_user":branch_user})
 
 
 def update_customer(request, customer_id):

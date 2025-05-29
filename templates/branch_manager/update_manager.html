@@ -18,7 +18,7 @@
                                 <h1 class="h4 text-gray-900 mb-4">Update Branch Manager</h1>
                             </div>
 
-                            <form class="user" method="post" action="{% url 'update_branch_manager' user.id %}">
+                            <form class="user" method="post" action="{% url 'update_branch_manager' branch_user.id %}">
                                 {% csrf_token %}
                                 <div class="form-group row">
                                     <div class="col-sm-6 mb-0 mb-sm-0 form-input">
