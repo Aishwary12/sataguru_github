@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'sadguru_bank.wsgi.application'
 #     }
 # }
 
-IS_RENDER = False  # Set to True on Render
+IS_RENDER = True  # Set to True on Render
 
 if IS_RENDER:
     # Internal DB for Render
