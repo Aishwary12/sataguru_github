@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -80,13 +80,31 @@ WSGI_APPLICATION = 'sadguru_bank.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
+IS_RENDER = True  # Set to True on Render
+
+if IS_RENDER:
+    # Internal DB for Render
+    DATABASES = {
+        'default': dj_database_url.parse(
+        "postgresql://sadgurudata_user:OzQWw26HwW6mqpGKJQKiiurnyVS7goee@dpg-d0s0cq63jp1c73e6p1k0-a/sadgurudata",
+        engine="django.db.backends.postgresql"
+    )
+    }
+else:
+    # External DB for local dev
+    DATABASES = {
+        'default': dj_database_url.parse(
+        "postgresql://sadgurudata_user:OzQWw26HwW6mqpGKJQKiiurnyVS7goee@dpg-d0s0cq63jp1c73e6p1k0-a.oregon-postgres.render.com/sadgurudata",
+        engine="django.db.backends.postgresql"
+    )
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -134,7 +152,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-var = ""
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
