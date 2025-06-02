@@ -118,9 +118,20 @@ class Customer(models.Model):
     debit_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     date_of_birth = models.CharField(max_length=150)
     scheme = models.CharField(max_length=150, choices=[
-        ("MONTHLY", "Monthly"),
-        ("HALF YEARLY", "Half Yearly"),
-        ("YEARLY", "Yearly")
+        ("DDS 12 month", "DDS 12 month"),
+        ("DDS 6 month",  "DDS 6 month"),
+        ("RD 12 month" , "RD 12 month"),
+        ("RD 24 month" , "RD 24 month"),
+        ("FD 1 year" , "FD 1 year"),
+        ("FD 2 year", "FD 2 year"),
+        ("FD 3 year", "FD 3 year"),
+        ("FD 4 year","FD 4 year"),
+        ("FD 5 year","FD 5 year"),
+        ("MIS 1 year","MIS 1 year"),
+        ("MIS 2 year","MIS 2 year"),
+        ("MIS 3 year","MIS 3 year"),
+        ("MIS 4 year","MIS 4 year"),
+        ("MIS 5 year","MIS 5 year")
     ])
     sex = models.CharField(max_length=200, choices=[
         ("MALE", "Male"),
@@ -217,7 +228,7 @@ class TransactionRequest(models.Model):
         limit_choices_to={'user': 'MID'},
         related_name='pending_transactions'
     )
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=datetime.now(), null=True, blank=True)
 
     def __str__(self):
         return f"{self.transaction_type} request for {self.customer.name} by {self.agent.name}" if self.customer and self.agent else "Unassigned Transaction Request"

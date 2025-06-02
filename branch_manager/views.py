@@ -264,6 +264,49 @@ def agent(request):
         {"msg1": msg1, "msg": msg, "agents": agents_with_assignments, "branch_heads": branch_heads},
     )
 
+def update_agent_assignment(request, assignment_id):
+    agent = get_object_or_404(CustomUser, id=assignment_id)
+    assignment = get_object_or_404(AgentAssignment, agents=agent)
+    msg = ""
+    msg1 = ''
+
+    if "massage1" in request.session:
+        msg1 = request.session.pop("massage1")
+    elif "massage" in request.session:
+        msg = request.session.pop("massage")
+
+    if request.method == "POST":
+        agent = request.POST["agents"]
+        agents = get_object_or_404(AgentAssignment, agents=agent)
+        branch_head = request.POST["branch_head"]
+        area = request.POST["area"]
+        password = "Pass@1234"
+        form = AgentAssignmentForm(
+            agents=agents,
+            branch_head = branch_head,
+            area=area
+        )
+
+        if form.is_valid():
+            agent_assignment = form.save(commit=False)
+            # Assign the currently logged-in branch manager if they're not staff
+            if not request.user.is_staff:
+                agent_assignment.branch_head = request.user
+            agent_assignment.save()
+            request.session["massage"] = "Assignment updated successfully!"
+            return redirect("agent")
+        else:
+            request.session["massage1"] = "Please correct the form errors."
+            return redirect("update_agent_assignment", assignment_id=assignment.agents.id)
+    else:
+        form = AgentAssignmentForm(instance=assignment)
+    return render(request, "branch_manager/update-agent.html", {
+        "form": form,
+        "assignment": assignment,
+        "msg": msg,
+        "msg1": msg1
+    })
+
 # Action to approve the credit request
 # Approve Transaction (Credit/Debit)
 def approve_transaction(request, request_id):
@@ -290,7 +333,7 @@ def approve_transaction(request, request_id):
         
         transaction_request.customer.save()
 
-    return redirect('dashboard')
+    return redirect('transaction')
 
 
 # Reject Transaction (Credit/Debit)
@@ -605,7 +648,8 @@ def search(request):
         return redirect("search_customer")
     # If the user is an agent, show only customers assigned to this agent 
     customers = Customer.objects.get(id=int(customer_id))
-    return render(request, 'branch_manager/customer-form.html', {'customer': customers, "msg":msg , "msg1": msg1})
+    current_date = datetime.datetime.now()
+    return render(request, 'branch_manager/customer-form.html', {'customer': customers, "current_date":current_date,"msg":msg , "msg1": msg1})
 
 
 def add_nominee(request, customer_id):
@@ -630,7 +674,6 @@ def add_nominee(request, customer_id):
 def see_nominee(request, customer_id):
     customer = Customer.objects.get(id=customer_id)
     nominees = Nominee.objects.filter(customer=customer)
-    # breakpoint()
     return render(request, 'branch_manager/see-nominee.html', {
         'nominees': nominees
     })
@@ -667,8 +710,7 @@ def delete_document(request, document_id):
 
 def see_transation(request, customer_id):
     customer = Customer.objects.get(id=customer_id)
-    transactions = TransactionRequest.objects.filter(customer=customer)
-    # breakpoint()
+    transactions = TransactionRequest.objects.filter(customer=customer).order_by('-created_at')
     return render(request, 'branch_manager/see-transation.html', {
         'transactions': transactions,
         'customer' : customer
@@ -904,12 +946,29 @@ def credit_request(request, customer_id):
             branch_head_instance = None  
     if request.method == 'POST':
         amount = request.POST.get('credit_amount')
+        update_date = request.POST.get('created_at')
+        if update_date:
+            update_date = datetime.datetime.strptime(update_date, '%Y-%m-%d')
+            update_date = update_date.replace(
+                hour=datetime.datetime.now().hour,
+                minute=datetime.datetime.now().minute,
+                second=datetime.datetime.now().second
+            )
         if amount:
+            update_date = request.POST.get('created_at')
+            if update_date:
+                update_date = datetime.datetime.strptime(update_date, '%Y-%m-%d')
+                update_date = update_date.replace(
+                    hour=datetime.datetime.now().hour,
+                    minute=datetime.datetime.now().minute,
+                    second=datetime.datetime.now().second
+                )
             transaction_request = TransactionRequest(
                 transaction_type='CREDIT',
                 agent=current_user if current_user.user == 'LOW' else None,  # Only set if agent
                 customer=customer,
                 amount=amount,
+                created_at=update_date,
                 branch_head=branch_head_instance if current_user.user == 'LOW' else current_user,  # Set branch head if agent, else set self
                 status='APPROVED' if current_user.user == 'MID' else 'PENDING'  # Auto approve if branch head
             )
@@ -1009,7 +1068,6 @@ def customer_debit_request(request, customer_id):
     current_user = request.user  # Logged-in branch head
     amount = request.POST.get("amount")   
     customer = get_object_or_404(Customer, id=customer_id)
-    breakpoint()
     if amount:
         transaction_request = TransactionRequest(
             transaction_type='DEBIT',

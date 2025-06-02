@@ -39,8 +39,10 @@
                 <th>Phone</th>
                 <th>Address</th>
                 <th>Account Number</th>
+                {% if user.is_authenticated and user.user == 'MID' or  user.user == 'TOP' %}
                 <th>Credit Amount</th>
                 <th>Debit Amount</th>
+                {% endif %}
                 <th>Date of Birth</th>
                 <th>Scheme</th>
                 <th>Sex</th>
@@ -76,8 +78,10 @@
                   <td>{{ customer.phone }}</td>
                   <td>{{ customer.address }}</td>
                   <td>{{ customer.account_number }}</td>
+                  {% if user.is_authenticated and user.user == 'MID' or  user.user == 'TOP' %}
                   <td>{{ customer.credit_amount }}</td>
                   <td>{{ customer.debit_amount }}</td>
+                  {% endif %}
                   <td>{{ customer.date_of_birth }}</td>
                   <td>{{ customer.scheme }}</td>
                   <td>{{ customer.sex }}</td>

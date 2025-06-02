@@ -91,7 +91,7 @@ WSGI_APPLICATION = 'sadguru_bank.wsgi.application'
 # }
 
 IS_RENDER = True  # Set to True on Render
-
+IS_LOCAL = False
 if IS_RENDER:
     # Internal DB for Render
     DATABASES = {
@@ -100,15 +100,21 @@ if IS_RENDER:
         engine="django.db.backends.postgresql"
     )
     }
-else:
+elif IS_LOCAL:
     # External DB for local dev
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else :
     DATABASES = {
         'default': dj_database_url.parse(
         "postgresql://sadgurudata_user:OzQWw26HwW6mqpGKJQKiiurnyVS7goee@dpg-d0s0cq63jp1c73e6p1k0-a.oregon-postgres.render.com/sadgurudata",
         engine="django.db.backends.postgresql"
     )
     }
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

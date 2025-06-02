@@ -8,6 +8,7 @@ urlpatterns = [
     path('branch_manager/',branch_manager, name="branch_manager"),
     path('branch/', create_branch, name="branch"),
     path('agent/', agent, name="agent"),
+    path("update_agent_assignment/<int:assignment_id>/", update_agent_assignment, name="update_agent_assignment"),
     path('logout/', logoutuser, name="logoutuser"),
     path('create_customer/', create_customer, name='customer'),
     path('credit_premium/', credit_premium, name='credit_premium'),
