@@ -28,8 +28,6 @@
                         <button data-toggle="modal" data-target="#exampleModal1-{{order_details.id}}" value="{{order_details.id}}"
                         class="btn btn-sm btn-primary shadow-sm invisible-div"><i class="fas fa-filter fa-sm text-white-50"></i> Date Filter</button>
                         {% endcomment %}
-                        <a href="{% url 'export_transactions_pdf' customer.id %}" class="btn btn-sm btn-primary shadow-sm"><i
-                          class="fas fa-download fa-sm text-white-50 "></i> Generate PDF</a>&nbsp;
                         <a href="{% url 'export_transactions_excel' customer.id %}" class="btn btn-sm btn-primary shadow-sm"><i
                           class="fas fa-download fa-sm text-white-50 "></i> Generate Excel</a>
                     </div>
@@ -44,7 +42,6 @@
                             <th>Type</th>
                             <th>Account Number</th>
                             <th>Amount</th>
-                            <th>Status</th>
                             <th>Date / Time</th>
                             <th class="custom_addresswidth">Processed By</th>
                             <th>User</th>
@@ -53,12 +50,12 @@
                         <tbody>
                           {% for transaction in transactions %}
                           
+                          {% if transaction.status == 'APPROVED' %}
                             <tr>
                             <td>{{ forloop.counter }}</td>
                             <td>{{ transaction.transaction_type }}</td>
                             <td>{{ customer.account_number }}</td>
                             <td>{{ transaction.amount }}</td>
-                            <td>{{ transaction.status }}</td>
                             <td>{{ transaction.created_at }}</td>
                             <td>
                                 {% if transaction.transaction_type == 'CREDIT' %}
@@ -103,6 +100,7 @@
                               </div>
                             </div>
                           </tr>
+                          {% endif %}
                           {% endfor %}
                         </tbody>
                       </table>

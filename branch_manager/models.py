@@ -109,7 +109,7 @@ class AgentAssignment(models.Model):
 class Customer(models.Model):
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=15)
-    email = models.EmailField(max_length=100)
+    email = models.EmailField(max_length=100, null=True, blank=True)
     ifsc_code = models.CharField(max_length=20)
     account_number = models.CharField(max_length=20)
     credit_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -235,10 +235,20 @@ class TransactionRequest(models.Model):
 
 
 class Nominee(models.Model):
+    RELATION_CHOICES = (
+        ('FATHER', 'FATHER'),
+        ('MOTHER', 'MOTHER'),
+        ('SISTER', 'SISTER'),
+        ('BROTHER', 'BROTHER'),
+        ('SON', 'SON'),
+        ('SPOUSE', 'SPOUSE'),
+        ('FRIEND', 'FRIEND'),
+        ('OTHER', 'OTHER'),
+    )
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='nominees')
     name = models.CharField(max_length=200)
     phone_number = models.CharField(max_length=15)
-    relation = models.CharField(max_length=100)
+    relation = models.CharField(max_length=100, choices=RELATION_CHOICES)
     address = models.CharField(max_length=300)
 
     def __str__(self):

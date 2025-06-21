@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.db.models import Case, When, Value, IntegerField, Sum
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db import IntegrityError
@@ -18,7 +19,7 @@ from .forms import *
 import xlsxwriter
 import os
 
-import datetime
+
 import calendar
 import openpyxl
 import xlwt
@@ -36,29 +37,63 @@ def generate_random_password(length=8):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
+# def dashboard(request):
+#     msg = ""
+#     msg1 = ''
+#     if "massage1" in request.session:
+#         msg1 = request.session["massage1"]
+#         del request.session["massage1"]
+#     elif "massage" in request.session:
+#         msg = request.session["massage"]
+#         del request.session["massage"]
+#     else:
+#         msg1 = ''
+#         msg = ""
+#     user = request.user
+
+#     # Fetch all transaction requests and order them by latest first
+#     if user.user == 'MID':  # Branch Head
+#         transactions = TransactionRequest.objects.filter(branch_head=user).order_by('-created_at')
+#     elif user.user == 'LOW':  # Agent
+#         transactions = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT').order_by('-created_at')
+#     else:  # Admin or higher-level user
+#         transactions = TransactionRequest.objects.all().order_by('-created_at')
+
+#     return render(request, "branch_manager/dashboard-page.html", {"msg1": msg1, "msg": msg, "transactions": transactions})
+
 def dashboard(request):
     msg = ""
-    msg1 = ''
+    msg1 = ""
     if "massage1" in request.session:
         msg1 = request.session["massage1"]
         del request.session["massage1"]
     elif "massage" in request.session:
         msg = request.session["massage"]
         del request.session["massage"]
-    else:
-        msg1 = ''
-        msg = ""
+
     user = request.user
+    context = {"msg1": msg1, "msg": msg}
 
-    # Fetch all transaction requests and order them by latest first
-    if user.user == 'MID':  # Branch Head
-        transactions = TransactionRequest.objects.filter(branch_head=user).order_by('-created_at')
-    elif user.user == 'LOW':  # Agent
-        transactions = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT').order_by('-created_at')
-    else:  # Admin or higher-level user
-        transactions = TransactionRequest.objects.all().order_by('-created_at')
+    if user.user == 'TOP':  # Admin
+        context.update({
+            "branch_count": Branch.objects.count(),
+            "branch_manager_count": CustomUser.objects.filter(user='MID').count(),
+            "agent_count": CustomUser.objects.filter(user='LOW').count(),
+            "active_customers": Customer.objects.filter(status="ACTIVE").count(),
+            "inactive_customers": Customer.objects.filter(status="DEACTIVE").count(),
+        })
 
-    return render(request, "branch_manager/dashboard-page.html", {"msg1": msg1, "msg": msg, "transactions": transactions})
+    elif user.user == 'MID':  # Branch Manager
+        # Only agents assigned to this branch head
+        agents_under_me = AgentAssignment.objects.filter(branch_head=user).values_list('agents', flat=True)
+        context.update({
+            "agent_count": CustomUser.objects.filter(id__in=agents_under_me).count(),
+            "active_customers": Customer.objects.filter(status="ACTIVE", assigned_agent__in=agents_under_me).count(),
+            "inactive_customers": Customer.objects.filter(status="DEACTIVE", assigned_agent__in=agents_under_me).count(),
+        })
+
+    # For Agent (LOW), no dashboard data needed
+    return render(request, "branch_manager/dashboard-page.html", context)
 
 def registration(request):
     msg1 = ''
@@ -113,88 +148,145 @@ def loginuser(request):
     template_name = 'branch_manager/Login.html'
     return render(request, template_name, {"msg1": msg1})
 
-# def branch_manager(request):
-#     msg1 = ''
+def branch_manager(request):
+    msg1 = ''
+    if "massage1" in request.session:
+        msg1 = request.session["massage1"]
+        del request.session["massage1"]
+    else:
+        msg1 = ''
+
+    form = UserRegistrationForm()
+    if request.method == "POST":
+        user = CustomUser.objects.all()
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            request.session["massage"] = 'User Added Successfully !!'
+            return redirect("branch_manager")
+        else:
+            request.session["massage1"] = 'Please Enter Valid Information !!'
+            return redirect('branch_manager')
+        
+    else:
+        form = UserRegistrationForm()
+        branch_heads = CustomUser.objects.filter(user='MID')
+    return render(request, "branch_manager/branch-manager.html/", {"form": form, "msg1": msg1, "branch_heads": branch_heads})
+
+# def transactions_report(request):
+#     msg = ""
+#     msg1 = ""
 #     if "massage1" in request.session:
 #         msg1 = request.session["massage1"]
 #         del request.session["massage1"]
-#     else:
-#         msg1 = ''
+#     elif "massage" in request.session:
+#         msg = request.session["massage"]
+#         del request.session["massage"]
 
-#     form = UserRegistrationForm()
-#     if request.method == "POST":
-#         user = CustomUser.objects.all()
-#         form = UserRegistrationForm(request.POST)
-#         if form.is_valid():
-#             form.save()
-#             request.session["massage"] = 'User Added Successfully !!'
-#             return redirect("branch_manager")
-#         else:
-#             request.session["massage1"] = 'Please Enter Valid Information !!'
-#             return redirect('branch_manager')
-        
-#     else:
-#         form = UserRegistrationForm()
-#         branch_heads = CustomUser.objects.filter(user='MID')
-#     return render(request, "branch_manager/branch-manager.html/", {"form": form, "msg1": msg1, "branch_heads": branch_heads})
+#     user = request.user
+
+#     # Filter and order transactions
+#     if user.user == 'MID':  # Branch Head
+#         transactions = TransactionRequest.objects.filter(branch_head=user).annotate(
+#             status_priority=Case(
+#                 When(status='PENDING', then=Value(0)),
+#                 default=Value(1),
+#                 output_field=IntegerField()
+#             )
+#         ).order_by('status_priority', '-created_at')
+
+#         # Calculate pending total only for this branch head
+#         pending_total = TransactionRequest.objects.filter(branch_head=user, status='PENDING').aggregate(
+#             total=Sum('amount')
+#         )['total'] or 0
+
+#     elif user.user == 'LOW':  # Agent
+#         transactions = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT').order_by('-created_at')
+
+#         # Calculate pending total for this agent
+#         pending_total = TransactionRequest.objects.filter(agent=user, status='PENDING').aggregate(
+#             total=Sum('amount')
+#         )['total'] or 0
+
+#     else:  # Admin or higher-level user
+#         transactions = TransactionRequest.objects.all().order_by('-created_at')
+
+#         # Calculate global pending total
+#         pending_total = TransactionRequest.objects.filter(status='PENDING').aggregate(
+#             total=Sum('amount')
+#         )['total'] or 0
+
+#     return render(request, "branch_manager/transactions.html", {
+#         "msg1": msg1,
+#         "msg": msg,
+#         "transactions": transactions,
+#         "pending_total": pending_total
+#     })
+
 
 def transactions_report(request):
-    msg = ""
-    msg1 = ''
-    if "massage1" in request.session:
-        msg1 = request.session["massage1"]
-        del request.session["massage1"]
-    elif "massage" in request.session:
-        msg = request.session["massage"]
-        del request.session["massage"]
-    else:
-        msg1 = ''
-        msg = ""
+    msg = request.session.pop("massage", "")
+    msg1 = request.session.pop("massage1", "")
+
     user = request.user
+    filter_by = request.GET.get('filter', 'PENDING')  # default to pending
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
 
-    # Fetch all transaction requests and order them by latest first
-    if user.user == 'MID':  # Branch Head
-        transactions = TransactionRequest.objects.filter(branch_head=user).order_by('-created_at')
-    elif user.user == 'LOW':  # Agent
-        transactions = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT').order_by('-created_at')
-    else:  # Admin or higher-level user
-        transactions = TransactionRequest.objects.all().order_by('-created_at')
-
-    return render(request, "branch_manager/transactions.html", {"msg1": msg1, "msg": msg, "transactions": transactions})
-
-
-def branch_manager(request):
-    msg = ""
-    msg1 = ''
-    if "massage1" in request.session:
-        msg1 = request.session["massage1"]
-        del request.session["massage1"]
-    elif "massage" in request.session:
-        msg = request.session["massage"]
-        del request.session["massage"]
+    # Base queryset depending on role
+    if user.user == 'MID':
+        base_qs = TransactionRequest.objects.filter(branch_head=user)
+    elif user.user == 'LOW':
+        base_qs = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT')
     else:
-        msg1 = ''
-        msg = ""
-    form = UserRegistrationForm()
+        base_qs = TransactionRequest.objects.all()
+
+    # Apply date filters
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            base_qs = base_qs.filter(created_at__date__gte=start)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, '%Y-%m-%d')
+            base_qs = base_qs.filter(created_at__date__lte=end)
+        except ValueError:
+            pass
+
+    # Filter type logic
+    if filter_by == 'APPROVED':
+        transactions = base_qs.filter(status='APPROVED').order_by('-created_at')
+        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
+    elif filter_by == 'ALL':
+        transactions = base_qs.order_by('-created_at')
+        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
+    else:
+        transactions = base_qs.filter(status='PENDING').order_by('-created_at')
+        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
+        filter_by = 'PENDING'
+
+    return render(request, "branch_manager/transactions.html", {
+        "msg1": msg1,
+        "msg": msg,
+        "transactions": transactions,
+        "total_amount": total_amount,
+        "filter_by": filter_by,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+def approve_all_pending(request):
 
     if request.method == "POST":
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            random_password = generate_random_password()
-            print('random_password', random_password)
-            random_password = "Pass@1234"
-            user.set_password(random_password)  # Hash the password
-            user.save()
-            request.session["massage"] = "User Added Successfully! Email Sent."
-            return redirect("branch_manager")
-        else:
-            request.session["massage1"] = "Please Enter Valid Information!"
-            return redirect("branch_manager")
-
-    branch_heads = CustomUser.objects.filter(user="MID")
-    return render(request, "branch_manager/branch-manager.html", {"form": form, "msg1": msg1, "msg": msg, "branch_heads": branch_heads})
-
+        if request.user.user == 'MID':
+            TransactionRequest.objects.filter(branch_head=request.user, status='PENDING').update(status='APPROVED')
+            request.session["massage"] = "All pending transactions have been approved."
+            return redirect('transaction')
+    request.session["massage"] = "All pending transactions already approved."
+    return redirect('transaction')
 
 def agent(request):
     msg = ""
@@ -398,14 +490,10 @@ def create_customer(request):
         msg = ""
 
     user = request.user
-    # If the user is an agent, show only customers assigned to this agent
-    # if user.user == 'LOW':  # If the user is an Agent
-    #     return redirect("search_customer")
     if user.user == 'LOW':  # If the user is a Branch Head
-        customers = Customer.objects.filter(status='ACTIVE')
+        customers = Customer.objects.filter(status='ACTIVE').order_by('account_number')
     else:
-        
-        customers = Customer.objects.all() 
+        customers = Customer.objects.all().order_by('account_number')
 
     if request.method == 'POST':
         form = CustomerForm(request.POST, user=request.user)  # Pass the logged-in user to the form
@@ -462,7 +550,7 @@ def search_customer(request):
             request.session["massage1"] = "Customer Is Not Active!"
             return redirect('search_customer')
         request.session["customer_id"] = customer_id.id
-        return redirect('search')  # Or wherever you want to redirect after saving nominee
+        return redirect('search')
     
     return render(request, 'branch_manager/search-customer.html', {"msg1": msg1, "msg": msg,
     })
@@ -648,7 +736,7 @@ def search(request):
         return redirect("search_customer")
     # If the user is an agent, show only customers assigned to this agent 
     customers = Customer.objects.get(id=int(customer_id))
-    current_date = datetime.datetime.now()
+    current_date = datetime.now()
     return render(request, 'branch_manager/customer-form.html', {'customer': customers, "current_date":current_date,"msg":msg , "msg1": msg1})
 
 
@@ -660,6 +748,7 @@ def add_nominee(request, customer_id):
             nominee = nominee_form.save(commit=False)
             nominee.customer = customer  # Link nominee to the customer
             nominee.save()
+            request.session["massage"] = "Nominee Added successfully !"
             return redirect('customer')  # Or wherever you want to redirect after saving nominee
     
     else:
@@ -679,20 +768,44 @@ def see_nominee(request, customer_id):
     })
 
 def add_documents(request, customer_id):
+    msg = ""
+    msg1 = ""
+
+    # Retrieve and clear session messages
+    if "massage1" in request.session:
+        msg1 = request.session["massage1"]
+        del request.session["massage1"]
+    elif "massage" in request.session:
+        msg = request.session["massage"]
+        del request.session["massage"]
+
     customer = get_object_or_404(Customer, id=customer_id)
+
     if request.method == 'POST':
         form = DocumentForm(request.POST, request.FILES)
+
         if form.is_valid():
+            image = request.FILES.get('image')  # 'image' is the field name from your form
+
+            # Image size validation: 200 KB = 200 * 1024 bytes
+            if image and image.size > 200 * 1024:
+                request.session["massage1"] = "Please upload an image below 200 KB!"
+                return redirect(request.path)  # Redirect to same page to display message
+
+            # Save document
             document = form.save(commit=False)
             document.customer = customer
             document.save()
-            return redirect('customer')  # Or another appropriate URL
+            request.session["massage"] = "Document Upload Successfully !!"
+            return redirect(request.path)  # Update as needed
     else:
         form = DocumentForm()
-    
+
     return render(request, 'branch_manager/add-documents.html', {
         'form': form,
         'customer': customer,
+        "msg": msg,
+        "msg1": msg1
     })
 
 def view_documents(request, customer_id):
@@ -705,8 +818,9 @@ def view_documents(request, customer_id):
 
 def delete_document(request, document_id):
     document = get_object_or_404(Document, id=document_id)
+    customer_id = document.customer.id  # Get the customer ID before deletion
     document.delete()
-    return redirect('view_documents')
+    return redirect('view_documents', customer_id=customer_id)
 
 def see_transation(request, customer_id):
     customer = Customer.objects.get(id=customer_id)
@@ -948,20 +1062,20 @@ def credit_request(request, customer_id):
         amount = request.POST.get('credit_amount')
         update_date = request.POST.get('created_at')
         if update_date:
-            update_date = datetime.datetime.strptime(update_date, '%Y-%m-%d')
+            update_date = datetime.strptime(update_date, '%Y-%m-%d')
             update_date = update_date.replace(
-                hour=datetime.datetime.now().hour,
-                minute=datetime.datetime.now().minute,
-                second=datetime.datetime.now().second
+                hour=datetime.now().hour,
+                minute=datetime.now().minute,
+                second=datetime.now().second
             )
         if amount:
             update_date = request.POST.get('created_at')
             if update_date:
-                update_date = datetime.datetime.strptime(update_date, '%Y-%m-%d')
+                update_date = datetime.strptime(update_date, '%Y-%m-%d')
                 update_date = update_date.replace(
-                    hour=datetime.datetime.now().hour,
-                    minute=datetime.datetime.now().minute,
-                    second=datetime.datetime.now().second
+                    hour=datetime.now().hour,
+                    minute=datetime.now().minute,
+                    second=datetime.now().second
                 )
             transaction_request = TransactionRequest(
                 transaction_type='CREDIT',
@@ -985,9 +1099,6 @@ def credit_request(request, customer_id):
 def debit_request(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
     current_user = request.user  # Logged-in branch head
-
-    # if current_user.user != 'MID':
-    #     return HttpResponseForbidden("Only branch heads can process debit requests.")
 
     if request.method == 'POST':
         amount = request.POST.get('debit_amount')

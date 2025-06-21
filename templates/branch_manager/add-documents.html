@@ -13,6 +13,9 @@
         <div class="row">
           <div class="col-lg-12">
             <div class="p-5">
+              <a href="{% url 'customer' %}">
+                <button class="btn btn-secondary stock_class" type="button">Back</button>
+              </a>
               <div class="text-center">
                 <h1 class="h4 text-gray-900 mb-4">Add Document for {{ customer.name }}</h1>
               </div>
@@ -54,52 +57,6 @@
   </div>
 </body>
 
-  <script>
-    $("#id_email").keyup(function () {
-      var email = $("#id_email").val();
-      var filter =
-        /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
-
-      if (!filter.test(email)) {
-        //alert('Please provide a valid email address');
-        $("#error_email").text(email + " is not a valid email");
-        email.focus;
-        //return false;
-      } else {
-        $("#error_email").text("");
-      }
-    });
-
-    $("#id_password").keyup(function () {
-      var password = $("#id_password").val();
-      var filter = /^[a-zA-Z0-9.,/ $@()]+$/;
-
-      if (password.length < 8) {
-        //alert('Please provid a valid email address');
-
-        $("#error_password").text("Password length should be greater than 8");
-        password.focus;
-        //return false;
-      } else {
-        $("#error_password").text("");
-      }
-    });
-
-    $("#id_phone").keyup(function () {
-      var password = $("#id_phone").val();
-      var filter = /^[a-zA-Z0-9.,/ $@()]+$/;
-
-      if (password.length < 10 || password.length > 10) {
-        //alert('Please provid a valid email address');
-
-        $("#error_phone").text("Phone number should be in 10 digits");
-        password.focus;
-        //return false;
-      } else {
-        $("#error_phone").text("");
-      }
-    });
-  </script>
   <style>
     .select_form select {
       padding: 0 !important;

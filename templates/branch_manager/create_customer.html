@@ -36,9 +36,9 @@
                 {% endif %}
                 <th>Name</th>
                 <th>Email</th>
+                <th>Account Number</th>
                 <th>Phone</th>
                 <th>Address</th>
-                <th>Account Number</th>
                 {% if user.is_authenticated and user.user == 'MID' or  user.user == 'TOP' %}
                 <th>Credit Amount</th>
                 <th>Debit Amount</th>
@@ -75,9 +75,9 @@
                   {% endif %}
                   <td>{{ customer.name }}</td>
                   <td>{{ customer.email }}</td>
+                  <td>{{ customer.account_number }}</td>
                   <td>{{ customer.phone }}</td>
                   <td>{{ customer.address }}</td>
-                  <td>{{ customer.account_number }}</td>
                   {% if user.is_authenticated and user.user == 'MID' or  user.user == 'TOP' %}
                   <td>{{ customer.credit_amount }}</td>
                   <td>{{ customer.debit_amount }}</td>

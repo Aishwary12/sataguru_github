@@ -43,7 +43,7 @@
                         <td>
                           {% if document.image %}
                           <a href="{{ document.image.url }}" target="_blank">
-                            <img src="{{ document.image.url }}" width="60" height="60" alt="Document Image">
+                            <img src="{{ document.image.url }}" width="120" height="150" alt="Document Image" style="object-fit: cover; border: 1px solid #ccc;">
                           </a>
                           {% else %}
                           No Image

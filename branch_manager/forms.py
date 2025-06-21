@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email, RegexValidator
 from django.contrib.auth.password_validation import validate_password
 from .models import *
+from django.forms import DateInput
 
 # class UserChangeForm(forms.ModelForm):
 #     password = ReadOnlyPasswordHashField()
@@ -19,29 +20,6 @@ user_type = (
         ("TOP","Owner"),
         ("MID","Branch Head"),
         ("LOW","Agent"))
-
-# class UserRegistrationForm(forms.ModelForm):
-#     password = forms.CharField(label='Password', widget= forms.TextInput(attrs={'placeholder': 'Password'}))
-#     class Meta:
-#         model = CustomUser
-#         fields = ('email','name', 'user', 'phone', 'password')
-#         widgets = {
-#             'email': forms.TextInput(attrs={'placeholder': 'Email'}),
-#             'name': forms.TextInput(attrs={'placeholder': 'Username'}),
-#             'phone': forms.TextInput(attrs={'placeholder': 'Phone'}),
-#         }
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         # Remove the "TOP" user type choice from the 'user' field (Owner)
-#         self.fields['user'].choices = [choice for choice in self.fields['user'].choices if choice[0] != 'TOP']
-        
-#     def save(self, commit=True):
-#         # Save the provided password in hashed format
-#         user = super().save(commit=False)         
-#         user.set_password(self.cleaned_data["password"])
-#         if commit:
-#             user.save()
-#         return user
 
 class UserRegistrationForm(forms.ModelForm):
     
@@ -155,7 +133,8 @@ class CustomerForm(forms.ModelForm):
         ]
         widgets = {
             'credit_amount': forms.NumberInput(attrs={'step': '0.01'}),
-            'debit_amount': forms.NumberInput(attrs={'step': '0.01'})
+            'debit_amount': forms.NumberInput(attrs={'step': '0.01'}),
+            'date_of_birth': DateInput(attrs={'type': 'date'})
         }
 
     def __init__(self, *args, **kwargs):
@@ -205,3 +184,10 @@ class DocumentForm(forms.ModelForm):
             'document_number': forms.TextInput(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+    # def clean_image(self):
+    #     image = self.cleaned_data.get('image')
+    #     if image:
+    #         if image.size > 200 * 1024:  # 200 KB = 200 * 1024 bytes
+    #             raise forms.ValidationError("Image file size must be under 200KB.")
+    #     return image

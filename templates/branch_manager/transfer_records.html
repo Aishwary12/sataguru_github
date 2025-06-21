@@ -40,28 +40,86 @@
                   <div class="table-responsive all_customer">
                     <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
                       <thead>
-                        <tr>
-                          <th>Sr. No</th>
-                          <th>Sender</th>
-                          <th>Receiver</th>
-                          <th>Amount</th>
-                          <th>Remarks</th>
-                          <th>Transfer Date</th>
-                        </tr>
+                          <tr>
+                              <th>Sr. No</th>
+                              <th>Customer Name</th>
+                              <th>Amount</th>
+                              <th>Type</th>
+                              <th>Status</th>
+                              <th>Processed By</th>
+                              <th>User</th>
+                              <th>Date - Time</th>
+                              {% if user.is_authenticated and user.user == 'MID' %}
+                              <th>Approve</th>
+                              <th>Reject</th>
+                              {% endif %}
+                          </tr>
                       </thead>
                       <tbody>
-                        {% for transfer in transfers %}
+                          {% for request in transactions %}
                           <tr>
-                            <td>{{ forloop.counter }}</td>
-                            <td>{{ transfer.sender.account_number }}</td>
-                            <td>{{ transfer.receiver.account_number }}</td>
-                            <td>₹{{ transfer.amount }}</td>
-                            <td>{{ transfer.remarks }}</td>
-                            <td>{{ transfer.transfer_date|date:"Y-m-d" }}</td>
+                              <td>{{ forloop.counter }}</td>
+                              <td>{{ request.customer.name }}</td>
+                              <td>{{ request.amount }}</td>
+                              <td>
+                                  <span class="{% if request.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
+                                      {{ request.transaction_type }}
+                                  </span>
+                              </td>
+                              <td>
+                                  <span class="{% if request.status == 'PENDING' %}text-warning{% elif request.status == 'APPROVED' %}text-success{% else %}text-danger{% endif %}">
+                                      {{ request.status }}
+                                  </span>
+                              </td>
+                              <td>
+                                  {% if request.transaction_type == 'CREDIT' %}
+                                    {% if request.agent.email == none %}
+                                      {{ request.branch_head.email }}
+                                    {% else %}
+                                      {{ request.agent.email }}
+                                    {% endif %}
+                                  {% else %}
+                                      {{ request.branch_head.email }}
+                                  {% endif %}
+                              </td>
+                              <td>
+                                {% if request.transaction_type == 'CREDIT' %}
+                                  {% if request.agent.name == none %}
+                                    {{ 'Branch Head' }}
+                                  {% else %}
+                                    {{ 'Agent' }}
+                                  {% endif %}
+                                {% else %}
+                                    {{ 'Branch Head' }}
+                                {% endif %}
+                            </td>
+                            <td>
+                              {{ request.created_at }}
+                            </td>
+                              {% if user.is_authenticated and user.user == 'MID' and request.status == 'PENDING' %}
+                              <td>
+                                  <form method="post" action="{% url 'approve_credit_request' request.id %}">
+                                      {% csrf_token %}
+                                      <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                  </form>
+                              </td>
+                              <td>
+                                  <form method="post" action="{% url 'reject_credit_request' request.id %}">
+                                      {% csrf_token %}
+                                      <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                  </form>
+                              </td>
+                              {% else %}
+                              <td>{{ 'Transaction Done' }}</td>
+                              <td>{{ '       ' }}</td>
+                              {% endif %}
                           </tr>
-                        {% endfor %}
+                          {% empty %}
+                          
+                      
+                          {% endfor %}
                       </tbody>
-                    </table>
+                  </table>
                   </div>
                 </div>
 

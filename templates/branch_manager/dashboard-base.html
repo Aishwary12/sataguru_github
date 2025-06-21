@@ -82,7 +82,9 @@
                 
                     </div>
                 </div>
-            
+            </li>
+            {% endif %}
+            <li class="nav-item">
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities1"
                     aria-expanded="true" aria-controls="collapseUtilities">
                     <i class="fas fa-tasks"></i>
@@ -95,14 +97,16 @@
 
                         <a class="collapse-item" href="{% url 'transaction' %}">Transactions</a>
                         <a class="collapse-item" href="{% url 'search_customer' %}">Credit</a>
+                        {% if user.is_authenticated and user.is_superuser or user.user == 'TOP' or user.user == 'MID' %}
                         <a class="collapse-item" href="{% url 'debit_search_customer' %}">Debit</a>
                         <a class="collapse-item" href="{% url 'transfer_customer' %}">Transfer</a>
                         <a class="collapse-item" href="{% url 'transfer_records' %}">Transfer Records</a>
+                        {% endif %}
                 
                     </div>
                 </div>
             </li>
-            {% endif %}
+            
             {% comment %}
             <!-- Nav Item - Pages Collapse Menu -->
             {% if user.is_authenticated and user.is_superuser or user.user == 'TOP' %}
