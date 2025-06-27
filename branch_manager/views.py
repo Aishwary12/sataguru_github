@@ -96,12 +96,14 @@ def dashboard(request):
     return render(request, "branch_manager/dashboard-page.html", context)
 
 def registration(request):
-    msg1 = ''
+    msg = ""
+    msg1 = ""
     if "massage1" in request.session:
         msg1 = request.session["massage1"]
         del request.session["massage1"]
-    else:
-        msg1 = ''
+    elif "massage" in request.session:
+        msg = request.session["massage"]
+        del request.session["massage"]
 
     form = UserRegistrationForm()
     if request.method == "POST":
@@ -149,12 +151,14 @@ def loginuser(request):
     return render(request, template_name, {"msg1": msg1})
 
 def branch_manager(request):
-    msg1 = ''
+    msg = ""
+    msg1 = ""
     if "massage1" in request.session:
         msg1 = request.session["massage1"]
         del request.session["massage1"]
-    else:
-        msg1 = ''
+    elif "massage" in request.session:
+        msg = request.session["massage"]
+        del request.session["massage"]
 
     form = UserRegistrationForm()
     if request.method == "POST":
@@ -227,65 +231,88 @@ def branch_manager(request):
 def transactions_report(request):
     msg = request.session.pop("massage", "")
     msg1 = request.session.pop("massage1", "")
+    current_user = request.user
 
-    user = request.user
-    filter_by = request.GET.get('filter', 'PENDING')  # default to pending
+    filter_by = request.GET.get('filter', 'PENDING')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
+    agent_id = request.GET.get('agent')
 
-    # Base queryset depending on role
-    if user.user == 'MID':
-        base_qs = TransactionRequest.objects.filter(branch_head=user)
-    elif user.user == 'LOW':
-        base_qs = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT')
+    if current_user.user == 'MID':
+        base_qs = TransactionRequest.objects.filter(branch_head=current_user)
+    elif current_user.user == 'LOW':
+        base_qs = TransactionRequest.objects.filter(agent=current_user, transaction_type='CREDIT')
     else:
         base_qs = TransactionRequest.objects.all()
 
-    # Apply date filters
+    if agent_id:
+        base_qs = base_qs.filter(agent_id=agent_id)
+
     if start_date:
         try:
-            start = datetime.strptime(start_date, '%Y-%m-%d')
-            base_qs = base_qs.filter(created_at__date__gte=start)
+            base_qs = base_qs.filter(created_at__date__gte=datetime.strptime(start_date, '%Y-%m-%d'))
         except ValueError:
             pass
-
     if end_date:
         try:
-            end = datetime.strptime(end_date, '%Y-%m-%d')
-            base_qs = base_qs.filter(created_at__date__lte=end)
+            base_qs = base_qs.filter(created_at__date__lte=datetime.strptime(end_date, '%Y-%m-%d'))
         except ValueError:
             pass
 
-    # Filter type logic
     if filter_by == 'APPROVED':
         transactions = base_qs.filter(status='APPROVED').order_by('-created_at')
-        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
     elif filter_by == 'ALL':
         transactions = base_qs.order_by('-created_at')
-        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
     else:
         transactions = base_qs.filter(status='PENDING').order_by('-created_at')
-        total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
-        filter_by = 'PENDING'
+
+    total_amount = transactions.aggregate(total=Sum('amount'))['total'] or 0
+
+    if current_user.is_staff:
+        agents_with_assignments = AgentAssignment.objects.select_related("agents", "branch_head", "agents__branch").filter(agents__user="LOW")
+    else:
+        agents_with_assignments = AgentAssignment.objects.select_related("agents", "branch_head", "agents__branch").filter(branch_head=current_user, agents__user="LOW")
+
+    agents = [assignment.agents for assignment in agents_with_assignments]
 
     return render(request, "branch_manager/transactions.html", {
-        "msg1": msg1,
         "msg": msg,
+        "msg1": msg1,
         "transactions": transactions,
         "total_amount": total_amount,
         "filter_by": filter_by,
         "start_date": start_date,
         "end_date": end_date,
+        "agents": agents,
+        "selected_agent": agent_id,
     })
 
-def approve_all_pending(request):
 
+
+def approve_all_pending(request):
     if request.method == "POST":
+        agent_id = request.POST.get("agent_id")
+
         if request.user.user == 'MID':
-            TransactionRequest.objects.filter(branch_head=request.user, status='PENDING').update(status='APPROVED')
-            request.session["massage"] = "All pending transactions have been approved."
-            return redirect('transaction')
-    request.session["massage"] = "All pending transactions already approved."
+            # Ensure agent_id is provided and valid
+            if agent_id and agent_id.isdigit():
+                # Safely convert to int
+                agent_id = int(agent_id)
+
+                # Update only selected agent's pending requests
+                TransactionRequest.objects.filter(
+                    branch_head=request.user,
+                    agent_id=agent_id,
+                    status='PENDING'
+                ).update(status='APPROVED')
+
+                request.session["massage"] = "Selected agent's pending transactions have been approved."
+            else:
+                request.session["massage1"] = "⚠ Please select a valid agent before approving."
+        
+        return redirect('transaction')
+
+    request.session["massage"] = "Invalid request method."
     return redirect('transaction')
 
 def agent(request):
@@ -300,6 +327,7 @@ def agent(request):
     else:
         msg1 = ''
         msg = ""
+
     current_user = request.user
 
     if current_user.is_staff:
@@ -457,7 +485,7 @@ def create_branch(request):
 
 
 def generate_account_number():
-    today = datetime.datetime.now().strftime('%Y%m%d')  # Format: YYYYMMDD
+    today = datetime.now().strftime('%Y%m%d')  # Format: YYYYMMDD
     # Filter customers created today based on account number prefix
     latest_account = Customer.objects.filter(account_number__startswith=today).aggregate(
         Max('account_number')
@@ -767,60 +795,114 @@ def see_nominee(request, customer_id):
         'nominees': nominees
     })
 
+# def add_documents(request, customer_id):
+#     msg = ""
+#     msg1 = ""
+
+#     # Retrieve and clear session messages
+#     if "massage1" in request.session:
+#         msg1 = request.session["massage1"]
+#         del request.session["massage1"]
+#     elif "massage" in request.session:
+#         msg = request.session["massage"]
+#         del request.session["massage"]
+
+#     customer = get_object_or_404(Customer, id=customer_id)
+
+#     if request.method == 'POST':
+#         form = DocumentForm(request.POST, request.FILES)
+
+#         if form.is_valid():
+#             image = request.FILES.get('image')  # 'image' is the field name from your form
+
+#             # Image size validation: 200 KB = 200 * 1024 bytes
+#             if image and image.size > 200 * 1024:
+#                 request.session["massage1"] = "Please upload an image below 200 KB!"
+#                 return redirect(request.path)  # Redirect to same page to display message
+
+#             # Save document
+#             document = form.save(commit=False)
+#             document.customer = customer
+#             document.save()
+#             request.session["massage"] = "Document Upload Successfully !!"
+#             return redirect(request.path)  # Update as needed
+#     else:
+#         form = DocumentForm()
+
+#     return render(request, 'branch_manager/add-documents.html', {
+#         'form': form,
+#         'customer': customer,
+#         "msg": msg,
+#         "msg1": msg1
+#     })
+
+# def view_documents(request, customer_id):
+#     customer = get_object_or_404(Customer, id=customer_id)
+#     documents = Document.objects.filter(customer=customer)
+#     return render(request, 'branch_manager/view_documents.html', {
+#         'documents': documents,
+#         'customer': customer
+#     })
+
+from base64 import b64encode
+
 def add_documents(request, customer_id):
-    msg = ""
-    msg1 = ""
-
-    # Retrieve and clear session messages
-    if "massage1" in request.session:
-        msg1 = request.session["massage1"]
-        del request.session["massage1"]
-    elif "massage" in request.session:
-        msg = request.session["massage"]
-        del request.session["massage"]
-
     customer = get_object_or_404(Customer, id=customer_id)
+    msg = request.session.pop("massage", "")
+    msg1 = request.session.pop("massage1", "")
 
     if request.method == 'POST':
         form = DocumentForm(request.POST, request.FILES)
-
         if form.is_valid():
-            image = request.FILES.get('image')  # 'image' is the field name from your form
-
-            # Image size validation: 200 KB = 200 * 1024 bytes
-            if image and image.size > 200 * 1024:
+            uploaded_file = request.FILES.get('image')
+            if uploaded_file and uploaded_file.size > 200 * 1024:
                 request.session["massage1"] = "Please upload an image below 200 KB!"
-                return redirect(request.path)  # Redirect to same page to display message
+                return redirect(request.path)
 
-            # Save document
             document = form.save(commit=False)
             document.customer = customer
+            document.image = uploaded_file.read()  # Read file as binary
             document.save()
+
             request.session["massage"] = "Document Upload Successfully !!"
-            return redirect(request.path)  # Update as needed
+            return redirect(request.path)
     else:
         form = DocumentForm()
 
     return render(request, 'branch_manager/add-documents.html', {
         'form': form,
         'customer': customer,
-        "msg": msg,
-        "msg1": msg1
+        'msg': msg,
+        'msg1': msg1
     })
 
 def view_documents(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
     documents = Document.objects.filter(customer=customer)
+
+    for doc in documents:
+        if doc.image:
+            doc.image_base64 = b64encode(doc.image).decode('utf-8')
+
     return render(request, 'branch_manager/view_documents.html', {
         'documents': documents,
         'customer': customer
     })
+
 
 def delete_document(request, document_id):
     document = get_object_or_404(Document, id=document_id)
     customer_id = document.customer.id  # Get the customer ID before deletion
     document.delete()
     return redirect('view_documents', customer_id=customer_id)
+
+def delete_all_document(request):
+    if request.user == 'TOP':
+        documents = Document.objects.all()
+        for docs in documents: 
+            docs.delete()
+        return redirect('customer')
+    return redirect('customer')
 
 def see_transation(request, customer_id):
     customer = Customer.objects.get(id=customer_id)
@@ -833,7 +915,7 @@ def see_transation(request, customer_id):
 
 def export_transactions_excel(request, customer_id):
     transactions = TransactionRequest.objects.filter(customer_id=customer_id)
-    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y-%m-%d')
     data = [
         {
             "Transaction Type": tr.transaction_type,
@@ -866,7 +948,7 @@ def all_export_transactions_excel(request):
     else:  # Admin or higher-level user
         transactions = TransactionRequest.objects.all().order_by('-created_at')
 
-    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y-%m-%d')
     data = [
         {
             "Transaction Type": tr.transaction_type,
@@ -892,7 +974,7 @@ def all_export_transactions_excel(request):
 
 def export_transactions_pdf(request, customer_id):
     transactions = TransactionRequest.objects.filter(customer_id=customer_id)
-    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y-%m-%d')
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="transactions_{current_date}.pdf"'
 
@@ -974,7 +1056,7 @@ def all_export_transactions_pdf(request):
     else:  # Admin or higher-level user
         transactions = TransactionRequest.objects.all().order_by('-created_at')
     
-    current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y-%m-%d')
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="transactions_{current_date}.pdf"'
 
@@ -1061,6 +1143,7 @@ def credit_request(request, customer_id):
     if request.method == 'POST':
         amount = request.POST.get('credit_amount')
         update_date = request.POST.get('created_at')
+        remark = request.POST.get('remark')
         if update_date:
             update_date = datetime.strptime(update_date, '%Y-%m-%d')
             update_date = update_date.replace(
@@ -1083,6 +1166,7 @@ def credit_request(request, customer_id):
                 customer=customer,
                 amount=amount,
                 created_at=update_date,
+                remarks=remark,
                 branch_head=branch_head_instance if current_user.user == 'LOW' else current_user,  # Set branch head if agent, else set self
                 status='APPROVED' if current_user.user == 'MID' else 'PENDING'  # Auto approve if branch head
             )
@@ -1177,7 +1261,8 @@ def customer_debit_search(request):
 
 def customer_debit_request(request, customer_id):
     current_user = request.user  # Logged-in branch head
-    amount = request.POST.get("amount")   
+    amount = request.POST.get("amount")
+    remark = request.POST.get('remark')   
     customer = get_object_or_404(Customer, id=customer_id)
     if amount:
         transaction_request = TransactionRequest(
@@ -1185,6 +1270,7 @@ def customer_debit_request(request, customer_id):
             agent=None,  # No agent since branch head initiates this
             customer=customer,
             amount=amount,
+            remarks=remark,
             branch_head=current_user,
             status='APPROVED'  # Debit transactions are automatically approved
         )
@@ -1286,8 +1372,20 @@ def change_status(request, customer_id):
 
 # Read (List) View
 def branch_list(request):
+    msg = ""
+    msg1 = ''
+    if "massage1" in request.session:
+        msg1 = request.session["massage1"]
+        del request.session["massage1"]
+    elif "massage" in request.session:
+        msg = request.session["massage"]
+        del request.session["massage"]
+    else:
+        msg1 = ''
+        msg = ""
+
     branches = Branch.objects.all()
-    return render(request, 'branch_list.html', {'branches': branches})
+    return render(request, 'branch_list.html', {'branches': branches, "msg":msg , "msg1": msg1})
 
 # Update View
 def update_branch(request, branch_id):
@@ -1301,14 +1399,22 @@ def update_branch(request, branch_id):
         form = BranchForm(instance=branch)
     return render(request, 'branch_update.html', {'form': form, 'branch': branch})
 
+
+# Delete View
+def delete_branch_manager(request, branch_manager_id):
+    branch_manager = get_object_or_404(CustomUser, id=branch_manager_id)
+    if branch_manager:
+        branch_manager.delete()
+    request.session["message"] = "Branch Manager Delete successfully!"
+    return redirect('branch_manager')  
+
+
 # Delete View
 def delete_branch(request, branch_id):
     branch = get_object_or_404(Branch, pk=branch_id)
-    if request.method == 'POST':
-        branch.delete()
-        return redirect('branch_list')  # Redirect to branch list after deletion
-    return render(request, 'branch_confirm_delete.html', {'branch': branch})
-
+    branch.delete()
+    request.session["message"] = "Branch Delete successfully!"
+    return redirect('branch')  # Redirect to branch list after deletion
 
 def delete_agent(request, user_id):
     print(f"Deleting user with ID: {user_id}")

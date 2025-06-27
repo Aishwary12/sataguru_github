@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}
-<title>Documents</title>
+<title>View Documents</title>
 {% endblock %}
 
 {% block contain %}
@@ -13,7 +13,6 @@
         <div class="row">
           <div class="col-lg-12">
             <div class="p-5">
-              &nbsp; 
               <a href="{% url 'customer' %}">
                 <button class="btn btn-secondary stock_class" type="button">Back</button>
               </a>
@@ -41,17 +40,18 @@
                         <td>{{ document.document_name }}</td>
                         <td>{{ document.document_number }}</td>
                         <td>
-                          {% if document.image %}
-                          <a href="{{ document.image.url }}" target="_blank">
-                            <img src="{{ document.image.url }}" width="120" height="150" alt="Document Image" style="object-fit: cover; border: 1px solid #ccc;">
-                          </a>
+                          {% if document.image_base64 %}
+                            <img src="data:image/jpeg;base64,{{ document.image_base64 }}" width="120" height="150" alt="Document Image" style="object-fit: cover; border: 1px solid #ccc;">
+                          {% elif document.image %}
+                            <a href="{{ document.image.url }}" target="_blank">
+                              <img src="{{ document.image.url }}" width="120" height="150" alt="Document Image" style="object-fit: cover; border: 1px solid #ccc;">
+                            </a>
                           {% else %}
-                          No Image
+                            No Image
                           {% endif %}
                         </td>
                         <td>{{ document.customer.name }}</td>
                         <td class="customWidth">
-                          &nbsp;
                           <a href="#" data-toggle="modal" data-target="#deleteModal-{{ document.id }}">
                             <button class="btn btn-danger">
                               <i class="fas fa-trash-alt"></i>

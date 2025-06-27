@@ -229,6 +229,7 @@ class TransactionRequest(models.Model):
         related_name='pending_transactions'
     )
     created_at = models.DateTimeField(default=datetime.now(), null=True, blank=True)
+    remarks = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.transaction_type} request for {self.customer.name} by {self.agent.name}" if self.customer and self.agent else "Unassigned Transaction Request"
@@ -263,7 +264,7 @@ class Document(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='documents')
     document_name = models.CharField(max_length=200)
     document_number = models.CharField(max_length=100)
-    image = models.ImageField(upload_to='documents/')
+    image = models.BinaryField(blank=True, null=True, editable=True)
 
     def __str__(self):
         return self.document_name

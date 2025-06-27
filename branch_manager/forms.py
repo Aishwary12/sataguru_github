@@ -176,13 +176,14 @@ class NomineeForm(forms.ModelForm):
 
 
 class DocumentForm(forms.ModelForm):
+    image = forms.FileField(required=True)
+
     class Meta:
         model = Document
         fields = ['document_name', 'document_number', 'image']
         widgets = {
             'document_name': forms.TextInput(attrs={'class': 'form-control'}),
             'document_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
     # def clean_image(self):

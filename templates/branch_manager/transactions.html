@@ -13,16 +13,24 @@
         <div class="row">
           <div class="col-lg-12">
             <div class="p-5">
+
               <a href="{% url 'dashboard' %}">
                 <button class="btn btn-secondary stock_class mb-3" type="button">Back</button>
               </a>
+
+              {% if msg %}
+                <div class="alert alert-info">{{ msg }}</div>
+              {% endif %}
+              {% if msg1 %}
+                <div class="alert alert-info">{{ msg1 }}</div>
+              {% endif %}
 
               <div class="card shadow">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                   <h6 class="m-0 font-weight-bold text-primary">Transactions</h6>
                   <div>
                     <a href="#" class="btn btn-sm btn-success shadow-sm">
-                      Total Amount : {{ total_amount }}
+                      Total Amount: {{ total_amount }}
                     </a>&nbsp;
                     <a href="{% url 'export_transactions_excel' %}" class="btn btn-sm btn-primary shadow-sm invisible-div">
                       <i class="fas fa-download fa-sm text-white-50"></i> Generate Excel
@@ -31,50 +39,68 @@
                 </div>
 
                 <div class="card-body">
-                  <!-- Filter Form -->
-                  <form method="get" class="form-inline mb-3">
-                    <label class="mr-2 font-weight-bold text-dark" for="filter">Filter:</label>
-                    <select name="filter" id="filter" class="form-control mr-2">
+
+                  <!-- Filter Form with Smaller Font -->
+                  <form method="get" class="form-inline mb-3" style="font-size: 0.85rem;">
+                    <label class="mr-2 font-weight-bold text-dark">Filter:</label>
+                    <select name="filter" class="form-control form-control-sm mr-2">
                       <option value="PENDING" {% if filter_by == 'PENDING' %}selected{% endif %}>Pending</option>
                       <option value="APPROVED" {% if filter_by == 'APPROVED' %}selected{% endif %}>Approved</option>
                       <option value="ALL" {% if filter_by == 'ALL' %}selected{% endif %}>All</option>
                     </select>
 
-                    <label class="mr-2 ml-3 font-weight-bold text-dark" for="start_date">From:</label>
-                    <input type="date" name="start_date" id="start_date" class="form-control mr-2" value="{{ start_date }}">
+                    {% if user.user == 'MID' %}
+                      <label class="ml-3 mr-2 font-weight-bold text-dark">Agent:</label>
+                      <select name="agent" class="form-control form-control-sm mr-2">
+                        <option value="">All Agents</option>
+                        {% for agent in agents %}
+                          <option value="{{ agent.id }}" {% if selected_agent == agent.id|stringformat:"s" %}selected{% endif %}>
+                            {{ agent.name }} ({{ agent.email }})
+                          </option>
+                        {% endfor %}
+                      </select>
+                    {% endif %}
 
-                    <label class="mr-2 font-weight-bold text-dark" for="end_date">To:</label>
-                    <input type="date" name="end_date" id="end_date" class="form-control mr-2" value="{{ end_date }}">
+                    <label class="ml-3 mr-2 font-weight-bold text-dark">From:</label>
+                    <input type="date" name="start_date" class="form-control form-control-sm mr-2" value="{{ start_date }}">
 
-                    <button type="submit" class="btn btn-primary">Apply</button>
-                    <a href="{% url 'transaction' %}" class="btn btn-secondary ml-2">Clear</a>
+                    <label class="mr-2 font-weight-bold text-dark">To:</label>
+                    <input type="date" name="end_date" class="form-control form-control-sm mr-2" value="{{ end_date }}">
+                    &nbsp;
+                    <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                    <a href="{% url 'transaction' %}" class="btn btn-sm btn-secondary ml-2">Clear</a>
                   </form>
 
-                  <!-- Bulk Approve All Checkbox -->
+                  <!-- Approve All Form -->
                   {% if user.user == 'MID' %}
-                  <form method="post" action="{% url 'approve_all_pending' %}" class="mb-3">
-                    {% csrf_token %}
-                    <div class="form-check">
-                      <input class="form-check-input" type="checkbox" id="approve_all" name="approve_all" required>
-                      <label class="form-check-label font-weight-bold text-success" for="approve_all">
-                        Approve All
-                      </label>
-                    </div>
-                    <button type="submit" class="btn btn-success mt-2">Approve</button>
-                  </form>
+                    <form method="post" action="{% url 'approve_all_pending' %}" class="mb-4" style="font-size: 0.85rem;">
+                      {% csrf_token %}
+                      <input type="hidden" name="agent_id" value="{{ selected_agent }}">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="approve_all" name="approve_all" required>
+                        <label class="form-check-label font-weight-bold text-success" for="approve_all">
+                          Approve All for Selected Agent
+                        </label>
+                      </div>
+                      <button type="submit" class="btn btn-sm btn-success mt-2">Approve</button>
+                    </form>
                   {% endif %}
 
                   <!-- Transactions Table -->
-                  <div class="table-responsive all_customer">
-                    <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-sm" id="dataTable" width="100%" cellspacing="0" style="font-size: 0.85rem;">
                       <thead>
                         <tr>
                           <th>Sr. No</th>
                           <th>Customer Name</th>
                           <th>Account No.</th>
+                          {% if user.user == 'MID' %}
+                          <th>Main Amount</th>
+                          {% endif %}
                           <th>Amount</th>
                           <th>Type</th>
                           <th>Status</th>
+                          <th>Remark</th>
                           <th>Processed By</th>
                           <th>User</th>
                           <th>Date - Time</th>
@@ -86,56 +112,60 @@
                       </thead>
                       <tbody>
                         {% for request in transactions %}
-                        <tr>
-                          <td>{{ forloop.counter }}</td>
-                          <td>{{ request.customer.name }}</td>
-                          <td>{{ request.customer.account_number }}</td>
-                          <td>{{ request.amount }}</td>
-                          <td>
-                            <span class="{% if request.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
-                              {{ request.transaction_type }}
-                            </span>
-                          </td>
-                          <td>
-                            <span class="{% if request.status == 'PENDING' %}text-warning{% elif request.status == 'APPROVED' %}text-success{% else %}text-danger{% endif %}">
-                              {{ request.status }}
-                            </span>
-                          </td>
-                          <td>
-                            {% if request.transaction_type == 'CREDIT' %}
-                              {{ request.agent.email|default:request.branch_head.email }}
-                            {% else %}
-                              {{ request.branch_head.email }}
+                          <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ request.customer.name }}</td>
+                            <td>{{ request.customer.account_number }}</td>
+                            {% if user.user == 'MID' %}
+                            <td>{{ request.customer.credit_amount }}</td>
                             {% endif %}
-                          </td>
-                          <td>
-                            {% if request.transaction_type == 'CREDIT' %}
-                              {{ request.agent.name|yesno:"Agent,Branch Head" }}
-                            {% else %}
-                              Branch Head
-                            {% endif %}
-                          </td>
-                          <td>{{ request.created_at }}</td>
+                            <td>{{ request.amount }}</td>
+                            <td>
+                              <span class="{% if request.transaction_type == 'CREDIT' %}text-success{% else %}text-danger{% endif %}">
+                                {{ request.transaction_type }}
+                              </span>
+                            </td>
+                            <td>
+                              <span class="{% if request.status == 'PENDING' %}text-warning{% elif request.status == 'APPROVED' %}text-success{% else %}text-danger{% endif %}">
+                                {{ request.status }}
+                              </span>
+                            </td>
+                            <td>{{ request.remarks }}</td>
+                            <td>
+                              {% if request.transaction_type == 'CREDIT' %}
+                                {{ request.agent.email|default:request.branch_head.email }}
+                              {% else %}
+                                {{ request.branch_head.email }}
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% if request.transaction_type == 'CREDIT' %}
+                                Agent
+                              {% else %}
+                                Branch Head
+                              {% endif %}
+                            </td>
+                            <td>{{ request.created_at }}</td>
 
-                          {% if user.user == 'MID' %}
-                            {% if request.status == 'PENDING' %}
-                              <td>
-                                <form method="post" action="{% url 'approve_credit_request' request.id %}">
-                                  {% csrf_token %}
-                                  <button type="submit" class="btn btn-success btn-sm">Approve</button>
-                                </form>
-                              </td>
-                              <td>
-                                <form method="post" action="{% url 'reject_credit_request' request.id %}">
-                                  {% csrf_token %}
-                                  <button type="submit" class="btn btn-danger btn-sm">Reject</button>
-                                </form>
-                              </td>
-                            {% else %}
-                              <td></td><td></td>
+                            {% if user.user == 'MID' %}
+                              {% if request.status == 'PENDING' %}
+                                <td>
+                                  <form method="post" action="{% url 'approve_credit_request' request.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                  </form>
+                                </td>
+                                <td>
+                                  <form method="post" action="{% url 'reject_credit_request' request.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                  </form>
+                                </td>
+                              {% else %}
+                                <td></td><td></td>
+                              {% endif %}
                             {% endif %}
-                          {% endif %}
-                        </tr>
+                          </tr>
                         {% endfor %}
                       </tbody>
                     </table>
@@ -143,6 +173,7 @@
 
                 </div> <!-- card-body -->
               </div> <!-- card -->
+
             </div>
           </div>
         </div>
