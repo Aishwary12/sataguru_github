@@ -9,6 +9,7 @@ urlpatterns = [
     path('delete_branch_manager/<int:branch_manager_id>/', delete_branch_manager, name="delete_branch_manager"),
     path('branch/', create_branch, name="branch"),
     path('delete/branch/<int:branch_id>/', delete_branch, name="delete_branch"),
+    path('update_branch/<int:branch_id>/', update_branch, name='update_branch'),
     path('agent/', agent, name="agent"),
     path("update_agent_assignment/<int:assignment_id>/", update_agent_assignment, name="update_agent_assignment"),
     path('logout/', logoutuser, name="logoutuser"),

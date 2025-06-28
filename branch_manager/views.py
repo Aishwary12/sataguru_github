@@ -37,30 +37,7 @@ def generate_random_password(length=8):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
-# def dashboard(request):
-#     msg = ""
-#     msg1 = ''
-#     if "massage1" in request.session:
-#         msg1 = request.session["massage1"]
-#         del request.session["massage1"]
-#     elif "massage" in request.session:
-#         msg = request.session["massage"]
-#         del request.session["massage"]
-#     else:
-#         msg1 = ''
-#         msg = ""
-#     user = request.user
-
-#     # Fetch all transaction requests and order them by latest first
-#     if user.user == 'MID':  # Branch Head
-#         transactions = TransactionRequest.objects.filter(branch_head=user).order_by('-created_at')
-#     elif user.user == 'LOW':  # Agent
-#         transactions = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT').order_by('-created_at')
-#     else:  # Admin or higher-level user
-#         transactions = TransactionRequest.objects.all().order_by('-created_at')
-
-#     return render(request, "branch_manager/dashboard-page.html", {"msg1": msg1, "msg": msg, "transactions": transactions})
-
+@login_required(login_url='loginuser')
 def dashboard(request):
     msg = ""
     msg1 = ""
@@ -150,6 +127,7 @@ def loginuser(request):
     template_name = 'branch_manager/Login.html'
     return render(request, template_name, {"msg1": msg1})
 
+@login_required(login_url='loginuser')
 def branch_manager(request):
     msg = ""
     msg1 = ""
@@ -177,57 +155,7 @@ def branch_manager(request):
         branch_heads = CustomUser.objects.filter(user='MID')
     return render(request, "branch_manager/branch-manager.html/", {"form": form, "msg1": msg1, "branch_heads": branch_heads})
 
-# def transactions_report(request):
-#     msg = ""
-#     msg1 = ""
-#     if "massage1" in request.session:
-#         msg1 = request.session["massage1"]
-#         del request.session["massage1"]
-#     elif "massage" in request.session:
-#         msg = request.session["massage"]
-#         del request.session["massage"]
-
-#     user = request.user
-
-#     # Filter and order transactions
-#     if user.user == 'MID':  # Branch Head
-#         transactions = TransactionRequest.objects.filter(branch_head=user).annotate(
-#             status_priority=Case(
-#                 When(status='PENDING', then=Value(0)),
-#                 default=Value(1),
-#                 output_field=IntegerField()
-#             )
-#         ).order_by('status_priority', '-created_at')
-
-#         # Calculate pending total only for this branch head
-#         pending_total = TransactionRequest.objects.filter(branch_head=user, status='PENDING').aggregate(
-#             total=Sum('amount')
-#         )['total'] or 0
-
-#     elif user.user == 'LOW':  # Agent
-#         transactions = TransactionRequest.objects.filter(agent=user, transaction_type='CREDIT').order_by('-created_at')
-
-#         # Calculate pending total for this agent
-#         pending_total = TransactionRequest.objects.filter(agent=user, status='PENDING').aggregate(
-#             total=Sum('amount')
-#         )['total'] or 0
-
-#     else:  # Admin or higher-level user
-#         transactions = TransactionRequest.objects.all().order_by('-created_at')
-
-#         # Calculate global pending total
-#         pending_total = TransactionRequest.objects.filter(status='PENDING').aggregate(
-#             total=Sum('amount')
-#         )['total'] or 0
-
-#     return render(request, "branch_manager/transactions.html", {
-#         "msg1": msg1,
-#         "msg": msg,
-#         "transactions": transactions,
-#         "pending_total": pending_total
-#     })
-
-
+@login_required(login_url='loginuser')
 def transactions_report(request):
     msg = request.session.pop("massage", "")
     msg1 = request.session.pop("massage1", "")
@@ -288,7 +216,7 @@ def transactions_report(request):
     })
 
 
-
+@login_required(login_url='loginuser')
 def approve_all_pending(request):
     if request.method == "POST":
         agent_id = request.POST.get("agent_id")
@@ -429,6 +357,7 @@ def update_agent_assignment(request, assignment_id):
 
 # Action to approve the credit request
 # Approve Transaction (Credit/Debit)
+@login_required(login_url='loginuser')
 def approve_transaction(request, request_id):
     transaction_request = get_object_or_404(TransactionRequest, id=request_id)
 
@@ -473,6 +402,8 @@ def reject_transaction(request, request_id):
 
 
 def create_branch(request):
+    msg = request.session.pop("massage", "")
+    msg1 = request.session.pop("massage1", "")
     if request.method == 'POST':
         form = BranchForm(request.POST)
         if form.is_valid():
@@ -481,7 +412,7 @@ def create_branch(request):
     else:
         form = BranchForm()
         branches = Branch.objects.all()
-    return render(request, 'branch_manager/branch.html', {'form': form, 'branches': branches})
+    return render(request, 'branch_manager/branch.html', {'form': form, "msg1": msg1, "msg": msg, 'branches': branches})
 
 
 def generate_account_number():
@@ -503,7 +434,7 @@ def generate_account_number():
 
     return new_account_number
 
-
+@login_required(login_url='loginuser')
 def create_customer(request):
     msg = ""
     msg1 = ''
@@ -540,6 +471,7 @@ def create_customer(request):
         document_form = DocumentForm()
     return render(request, 'branch_manager/create_customer.html', {"msg1": msg1, "msg": msg, 'form': form, 'nominee_form' : nominee_form, 'document_form': document_form, 'customers': customers})
 
+@login_required(login_url='loginuser')
 def credit_premium(request):
     msg = ""
     msg1 = ''
@@ -555,6 +487,7 @@ def credit_premium(request):
 
     return redirect("search_customer")
 
+@login_required(login_url='loginuser')
 def search_customer(request):
     msg = ""
     msg1 = ''
@@ -583,7 +516,7 @@ def search_customer(request):
     return render(request, 'branch_manager/search-customer.html', {"msg1": msg1, "msg": msg,
     })
 
-
+@login_required(login_url='loginuser')
 def transfer_customer(request):
     msg = ""
     msg1 = ''
@@ -615,7 +548,7 @@ def transfer_customer(request):
     return render(request, 'branch_manager/transfer-customer.html', {"msg1": msg1, "msg": msg,
     })
 
-
+@login_required(login_url='loginuser')
 def transfer_search(request):
     msg = ""
     msg1 = ''
@@ -649,6 +582,8 @@ def transfer_search(request):
     reciver_customer = Customer.objects.get(id=int(reciever_customer_id))
     return render(request, 'branch_manager/transfer-form.html', {'customer': main_customers, "reciver" : reciver_customer,"msg":msg , "msg1": msg1})
 
+
+@login_required(login_url='loginuser')
 def transfer_amount(request, sender_id, receiver_id):
     if request.method == 'POST':
         amount = request.POST.get('amount')
@@ -713,7 +648,8 @@ def transfer_amount(request, sender_id, receiver_id):
 
     else:
         return redirect("transfer_customer")
-    
+
+@login_required(login_url='loginuser')   
 def transfer_records(request):
     msg = ""
     msg1 = ''
@@ -742,6 +678,7 @@ def forgot_password(request):
     })
 
 
+@login_required(login_url='loginuser')
 def search(request):
     msg = ""
     msg1 = ''
@@ -767,7 +704,7 @@ def search(request):
     current_date = datetime.now()
     return render(request, 'branch_manager/customer-form.html', {'customer': customers, "current_date":current_date,"msg":msg , "msg1": msg1})
 
-
+@login_required(login_url='loginuser')
 def add_nominee(request, customer_id):
     customer = Customer.objects.get(id=customer_id)
     if request.method == 'POST':
@@ -846,6 +783,7 @@ def see_nominee(request, customer_id):
 
 from base64 import b64encode
 
+@login_required(login_url='loginuser')
 def add_documents(request, customer_id):
     customer = get_object_or_404(Customer, id=customer_id)
     msg = request.session.pop("massage", "")
@@ -1354,22 +1292,6 @@ def change_status(request, customer_id):
         return redirect("customer")
 
 
-# def create_customer(request):
-#     customers = Customer.objects.all()
-#     if request.method == 'POST':
-#         # Pass the logged-in user to the form
-#         form = CustomerForm(request.POST, user=request.user)
-#         if form.is_valid():
-#             form.save()
-#             request.session["message"] = "Customer added successfully!"
-#             return redirect('customer')  # Redirect to a customer list or another page
-#     else:
-#         # Pass the logged-in user to the form
-#         form = CustomerForm(user=request.user)
-
-#     return render(request, 'branch_manager/create_customer.html', {'form': form, "customers": customers})
-
-
 # Read (List) View
 def branch_list(request):
     msg = ""
@@ -1389,15 +1311,16 @@ def branch_list(request):
 
 # Update View
 def update_branch(request, branch_id):
-    branch = get_object_or_404(Branch, pk=branch_id)
+    branch = get_object_or_404(Branch, id=branch_id)
     if request.method == 'POST':
         form = BranchForm(request.POST, instance=branch)
         if form.is_valid():
             form.save()
-            return redirect('branch_list')  # Redirect to branch list after update
+            request.session["massage"] = "Branch Update Successfully."
+            return redirect('branch')  # Redirect to branch list after update
     else:
         form = BranchForm(instance=branch)
-    return render(request, 'branch_update.html', {'form': form, 'branch': branch})
+    return render(request, 'branch_manager/update_branch.html', {'form': form, 'branch': branch})
 
 
 # Delete View

@@ -95,10 +95,10 @@ IS_LOCAL = False
 if IS_RENDER:
     # Internal DB for Render
     DATABASES = {
-        'default': dj_database_url.parse(
-        "postgresql://sadgurudata_user:OzQWw26HwW6mqpGKJQKiiurnyVS7goee@dpg-d0s0cq63jp1c73e6p1k0-a/sadgurudata",
-        engine="django.db.backends.postgresql"
-    )
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.mysqlite3',
+        }
     }
 elif IS_LOCAL:
     # External DB for local dev
@@ -109,12 +109,7 @@ elif IS_LOCAL:
         }
     }
 else :
-    DATABASES = {
-        'default': dj_database_url.parse(
-        "postgresql://sadgurudata_user:OzQWw26HwW6mqpGKJQKiiurnyVS7goee@dpg-d0s0cq63jp1c73e6p1k0-a.oregon-postgres.render.com/sadgurudata",
-        engine="django.db.backends.postgresql"
-    )
-    }
+    pass
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

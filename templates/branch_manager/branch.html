@@ -48,7 +48,7 @@
               <td>{{ branch.pincode }}</td>
               <td>{{ branch.branch_code }}</td>
               <td class="text-break">{{ branch.address }}</td>
-              <td class=""><button class="btn btn-success"><svg
+              <td class=""><a href="{% url 'update_branch' branch.id %}"><button class="btn btn-success"><svg
                       xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                       class="bi bi-pencil-square" viewBox="0 0 16 16">
                       <path
