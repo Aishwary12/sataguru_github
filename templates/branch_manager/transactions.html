@@ -94,7 +94,7 @@
                           <th>Sr. No</th>
                           <th>Customer Name</th>
                           <th>Account No.</th>
-                          {% if user.user == 'MID' %}
+                          {% if user.user == 'MID' or user.user == 'TOP' %}
                           <th>Main Amount</th>
                           {% endif %}
                           <th>Amount</th>
@@ -116,7 +116,7 @@
                             <td>{{ forloop.counter }}</td>
                             <td>{{ request.customer.name }}</td>
                             <td>{{ request.customer.account_number }}</td>
-                            {% if user.user == 'MID' %}
+                            {% if user.user == 'MID' or user.user == 'TOP' %}
                             <td>{{ request.customer.credit_amount }}</td>
                             {% endif %}
                             <td>{{ request.amount }}</td>

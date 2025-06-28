@@ -221,32 +221,77 @@ def transactions_report(request):
     })
 
 
-@login_required(login_url='loginuser')
-def approve_all_pending(request):
+# @login_required(login_url='loginuser')
+# def approve_all_pending(request):
+#     if request.method == "POST":
+#         agent_id = request.POST.get("agent_id")
+
+#         if request.user.user == 'MID':
+#             # Ensure agent_id is provided and valid
+#             if agent_id and agent_id.isdigit():
+#                 # Safely convert to int
+#                 agent_id = int(agent_id)
+
+#                 # Update only selected agent's pending requests
+#                 TransactionRequest.objects.filter(
+#                     branch_head=request.user,
+#                     agent_id=agent_id,
+#                     status='PENDING'
+#                 ).update(status='APPROVED')
+
+#                 request.session["massage"] = "Selected agent's pending transactions have been approved."
+#             else:
+#                 request.session["massage1"] = "⚠ Please select a valid agent before approving."
+        
+#         return redirect('transaction')
+
+#     request.session["massage"] = "Invalid request method."
+#     return redirect('transaction')
+
+def approve_all_pending(request): 
     if request.method == "POST":
         agent_id = request.POST.get("agent_id")
 
         if request.user.user == 'MID':
-            # Ensure agent_id is provided and valid
             if agent_id and agent_id.isdigit():
-                # Safely convert to int
                 agent_id = int(agent_id)
 
-                # Update only selected agent's pending requests
-                TransactionRequest.objects.filter(
+                # Get pending transactions for the selected agent
+                pending_transactions = TransactionRequest.objects.filter(
                     branch_head=request.user,
                     agent_id=agent_id,
                     status='PENDING'
-                ).update(status='APPROVED')
+                )
 
-                request.session["massage"] = "Selected agent's pending transactions have been approved."
+                approved_count = 0
+
+                for transaction in pending_transactions:
+                    # Update the status
+                    transaction.status = 'APPROVED'
+                    transaction.save()
+
+                    # Apply the transaction to the customer's account
+                    customer = transaction.customer
+                    if transaction.transaction_type == 'CREDIT':
+                        customer.credit_amount += transaction.amount
+                    elif transaction.transaction_type == 'DEBIT':
+                        customer.debit_amount += transaction.amount
+                    customer.save()
+
+                    approved_count += 1
+
+                if approved_count > 0:
+                    request.session["massage"] = f"{approved_count} pending transactions approved and reflected in customer accounts."
+                else:
+                    request.session["massage1"] = "No pending transactions found for this agent."
             else:
                 request.session["massage1"] = "⚠ Please select a valid agent before approving."
-        
+
         return redirect('transaction')
 
-    request.session["massage"] = "Invalid request method."
+    request.session["massage1"] = "Invalid request method."
     return redirect('transaction')
+
 
 def agent(request):
     msg = ""

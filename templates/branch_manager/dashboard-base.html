@@ -96,7 +96,9 @@
                         <h6 class="collapse-header">Transactions Screen:</h6>
 
                         <a class="collapse-item" href="{% url 'transaction' %}">Transactions</a>
+                        {% if user.is_authenticated and user.user == 'LOW' or user.user == 'MID' %}
                         <a class="collapse-item" href="{% url 'search_customer' %}">Credit</a>
+                        {% endif %}
                         {% if user.is_authenticated and user.is_superuser or user.user == 'TOP' or user.user == 'MID' %}
                         <a class="collapse-item" href="{% url 'debit_search_customer' %}">Debit</a>
                         <a class="collapse-item" href="{% url 'transfer_customer' %}">Transfer</a>
@@ -144,10 +146,12 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Customer Screens:</h6>
         
-                        {% if user.is_authenticated and user.is_superuser or user.user == 'MID' or user.user == 'TOP' or user.user == 'LOW' %}
+                        {% if user.is_authenticated and user.user == 'MID' or user.user == 'TOP' or user.user == 'LOW' %}
                         <a class="collapse-item" href="{% url 'customer' %}">All Customer</a>
                         {% endif %}
+                        {% if user.is_authenticated and user.user == 'MID' or user.user == 'LOW' %}
                         <a class="collapse-item" href="{% url 'credit_premium' %}">Credit Premium</a>
+                        {% endif %}
                         <div class="collapse-divider"></div>
                         <!-- <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
