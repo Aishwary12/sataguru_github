@@ -22,7 +22,17 @@ user_type = (
         ("LOW","Agent"))
 
 class UserRegistrationForm(forms.ModelForm):
-    
+    branch = forms.ModelChoiceField(
+        queryset=Branch.objects.all(),
+        required=False,
+        empty_label="Select Branch"
+    )
+    branch_head = forms.ModelChoiceField(
+        queryset=CustomUser.objects.filter(user='MID'),
+        required=False,
+        empty_label="Select Branch Head"
+    )
+
     class Meta:
         model = CustomUser
         fields = ('email', 'name', 'user', 'phone')
@@ -32,45 +42,52 @@ class UserRegistrationForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={'placeholder': 'Phone'}),
         }
 
-    # Dynamically add fields
-    branch = forms.ModelChoiceField(queryset=Branch.objects.all(), required=False, empty_label="Select Branch")
-    branch_head = forms.ModelChoiceField(queryset=CustomUser.objects.filter(user='MID'), required=False, empty_label="Select Branch Head")
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Show the branch field only for "Branch Head"
-        self.fields['user'].choices = [choice for choice in self.fields['user'].choices if choice[0] != 'TOP']
-        if 'user' in self.initial and self.initial['user'] == 'MID':
+        # Exclude 'TOP' from user type choices
+        self.fields['user'].choices = [
+            choice for choice in self.fields['user'].choices if choice[0] != 'TOP'
+        ]
+
+        # Detect user type based on form POST data or initial data
+        user_value = None
+        if 'user' in self.data:
+            user_value = self.data.get('user')
+        elif 'user' in self.initial:
+            user_value = self.initial['user']
+
+        # Set required flags dynamically based on user type
+        if user_value == 'MID':
             self.fields['branch'].required = False
-            self.fields['branch_head'].required = False  # Branch Head doesn't need a branch head
-        elif 'user' in self.initial and self.initial['user'] == 'LOW':
+            self.fields['branch_head'].required = False
+        elif user_value == 'LOW':
             self.fields['branch'].required = False
-            self.fields['branch_head'].required = True  # Agent (LOW) needs a Branch Head
+            self.fields['branch_head'].required = True
         else:
             self.fields['branch'].required = False
-            self.fields['branch_head'].required = False  # For other user types, neither field is required
+            self.fields['branch_head'].required = False
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        # user.set_password(self.cleaned_data["password"])
 
-        # Logic to associate a branch or branch head
+        # Assign branch if MID
         if self.cleaned_data.get('user') == 'MID':
             branch = self.cleaned_data.get('branch')
             if branch:
-                # Optionally, associate the branch with the Branch Head user
                 user.branch = branch
-        
+
+        # Assign branch_head if LOW
         if self.cleaned_data.get('user') == 'LOW':
             branch_head = self.cleaned_data.get('branch_head')
             if branch_head:
-                # Optionally, associate the Branch Head with the Agent
-                user.branch_head = branch_head  # Assuming you have a field to store the branch head
+                user.branch_head = branch_head
 
         if commit:
             user.save()
         return user
+
+
 
 class AgentRegistrationForm(forms.ModelForm):
     password = forms.CharField(label='Password', widget=forms.TextInput(attrs={'placeholder': 'Password'}))

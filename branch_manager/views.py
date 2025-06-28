@@ -143,7 +143,12 @@ def branch_manager(request):
         user = CustomUser.objects.all()
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save(commit=False)
+            random_password = generate_random_password()
+            print('random_password', random_password)
+            random_password = "Pass@1234"
+            user.set_password(random_password)  # Hash the password
+            user.save()
             request.session["massage"] = 'User Added Successfully !!'
             return redirect("branch_manager")
         else:
