@@ -929,18 +929,53 @@ def export_transactions_excel(request, customer_id):
 def all_export_transactions_excel(request):
     user = request.user
 
-    if user.user == 'MID':  # Branch Head
-        transactions = TransactionRequest.objects.filter(branch_head=user).order_by('-created_at')
-    elif user.user == 'LOW':  # Agent
-        transactions = TransactionRequest.objects.filter(agent=user).order_by('-created_at')
-    else:  # Admin or higher-level user
-        transactions = TransactionRequest.objects.all().order_by('-created_at')
+    # Start with role-based filtering
+    if user.user == 'MID':
+        transactions = TransactionRequest.objects.filter(branch_head=user)
+    elif user.user == 'LOW':
+        transactions = TransactionRequest.objects.filter(agent=user)
+    else:
+        transactions = TransactionRequest.objects.all()
 
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    # Apply date filters
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d")
+            transactions = transactions.filter(created_at__date__gte=start)
+        except ValueError:
+            pass
+
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+            transactions = transactions.filter(created_at__date__lte=end)
+        except ValueError:
+            pass
+
+    # Apply status filter
+    status = request.GET.get('filter')
+    if status in ['PENDING', 'APPROVED']:
+        transactions = transactions.filter(status=status)
+
+    # Apply agent filter (only for MID)
+    agent_id = request.GET.get('agent')
+    if user.user == 'MID' and agent_id:
+        try:
+            transactions = transactions.filter(agent__id=agent_id)
+        except ValueError:
+            pass
+
+    # Final ordering
+    transactions = transactions.order_by('-created_at')
+
+    # Prepare data for Excel
     data = [
         {
             "Transaction Type": tr.transaction_type,
-            "Agent": tr.agent.name if tr.agent else "Agent Not Assign",
+            "Agent": tr.agent.name if tr.agent else "Not Assigned",
             "Customer": tr.customer.name if tr.customer else "",
             "Amount": tr.amount,
             "Status": tr.status,
@@ -951,6 +986,7 @@ def all_export_transactions_excel(request):
     ]
 
     df = pd.DataFrame(data)
+    current_date = datetime.now().strftime('%Y-%m-%d')
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = f'attachment; filename="transactions_{current_date}.xlsx"'
 

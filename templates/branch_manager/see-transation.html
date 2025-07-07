@@ -42,6 +42,7 @@
                             <th>Type</th>
                             <th>Account Number</th>
                             <th>Amount</th>
+                            <th>Remark</th>
                             <th>Date / Time</th>
                             <th class="custom_addresswidth">Processed By</th>
                             <th>User</th>
@@ -56,6 +57,7 @@
                             <td>{{ transaction.transaction_type }}</td>
                             <td>{{ customer.account_number }}</td>
                             <td>{{ transaction.amount }}</td>
+                            <td>{{ transaction.remarks }}</td>
                             <td>{{ transaction.created_at }}</td>
                             <td>
                                 {% if transaction.transaction_type == 'CREDIT' %}

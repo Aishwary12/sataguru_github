@@ -32,9 +32,10 @@
                     <a href="#" class="btn btn-sm btn-success shadow-sm">
                       Total Amount: {{ total_amount }}
                     </a>&nbsp;
-                    <a href="{% url 'export_transactions_excel' %}" class="btn btn-sm btn-primary shadow-sm invisible-div">
-                      <i class="fas fa-download fa-sm text-white-50"></i> Generate Excel
-                    </a>
+                    <a href="{% url 'export_transactions_excel' %}?start_date={{ start_date }}&end_date={{ end_date }}&filter={{ filter_by }}{% if selected_agent %}&agent={{ selected_agent }}{% endif %}" 
+                    class="btn btn-sm btn-primary shadow-sm invisible-div">
+                   <i class="fas fa-download fa-sm text-white-50"></i> Generate Excel
+                 </a>
                   </div>
                 </div>
 
